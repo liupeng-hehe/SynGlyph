@@ -536,7 +536,9 @@ export function RippleImage({
             if (!rippleAnimatingRef.current) {
               a.fill(0);
               b.fill(0);
-              uploadRippleTexture(rippleTexRef.current, b);
+              if (rippleTexRef.current) {
+                uploadRippleTexture(rippleTexRef.current, b);
+              }
             }
           }
         }
