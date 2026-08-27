@@ -1,0 +1,27 @@
+# Git / IDE
+.git
+.github
+.cursor
+**/.DS_Store
+
+# Python
+**/__pycache__
+**/*.py[cod]
+**/.venv
+**/.pytest_cache
+**/*.db
+**/synglyph.db
+**/synglyph.db-*
+
+# Node (rebuilt in image)
+**/node_modules
+**/.next
+
+# Large local assets (API image does not need them)
+artifacts
+data
+
+# Other apps not used by a given Dockerfile (keeps context smaller)
+# Uncomment if builds stay slow:
+# apps/web-chinese
+# apps/web-presentation

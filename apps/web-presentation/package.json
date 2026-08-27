@@ -1,0 +1,37 @@
+{
+  "name": "web-presentation",
+  "private": true,
+  "scripts": {
+    "dev": "node scripts/dev-with-port.mjs",
+    "dev:poll": "NEXT_WEBPACK_POLL_MS=1000 node scripts/dev-with-port.mjs",
+    "dev:turbo": "node scripts/dev-with-port.mjs --turbo",
+    "dev:clean": "rm -rf .next node_modules/.cache && node scripts/dev-with-port.mjs",
+    "dev:next": "next dev -p 3002",
+    "build": "next build",
+    "generate:brain-glb": "node scripts/generate-segmented-brain-glb.mjs",
+    "start": "next start"
+  },
+  "dependencies": {
+    "@react-pdf/renderer": "^3.4.4",
+    "@react-three/drei": "^9.117.0",
+    "@react-three/fiber": "^8.17.0",
+    "@synglyph/shared": "workspace:*",
+    "autoprefixer": "^10.4.0",
+    "html-to-image": "^1.11.11",
+    "html2canvas": "^1.4.1",
+    "lenis": "^1.3.16",
+    "next": "^14.0.0",
+    "postcss": "^8.4.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "tailwindcss": "^3.4.0",
+    "three": "^0.170.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "@types/three": "^0.170.0",
+    "typescript": "^5.0.0"
+  }
+}

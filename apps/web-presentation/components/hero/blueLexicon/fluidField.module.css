@@ -1,0 +1,191 @@
+/* Organic drift — durations use --fluid-dur-* set from config motionSpeed */
+
+.fluidRoot {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.fluidBase {
+  position: absolute;
+  inset: 0;
+  background: var(--fluid-base-gradient);
+  animation: fluidBasePulse var(--fluid-dur-base, 40s) ease-in-out infinite
+    alternate;
+}
+
+.fluidBlob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(var(--fluid-blob-blur, 56px));
+  opacity: var(--fluid-blob-opacity, 1);
+  mix-blend-mode: var(--fluid-blob-blend, soft-light);
+  will-change: transform;
+}
+
+.fluidBlob1 {
+  width: var(--fluid-b1-w, 120%);
+  height: var(--fluid-b1-h, 85%);
+  left: var(--fluid-b1-x, -25%);
+  top: var(--fluid-b1-y, -15%);
+  background: var(--fluid-b1-bg);
+  animation: fluidDrift1 var(--fluid-dur-1, 26s) ease-in-out infinite alternate;
+}
+
+.fluidBlob2 {
+  width: var(--fluid-b2-w, 95%);
+  height: var(--fluid-b2-h, 110%);
+  right: var(--fluid-b2-r, -30%);
+  bottom: var(--fluid-b2-b, -25%);
+  background: var(--fluid-b2-bg);
+  animation: fluidDrift2 var(--fluid-dur-2, 30s) ease-in-out infinite alternate;
+}
+
+.fluidBlob3 {
+  width: var(--fluid-b3-w, 75%);
+  height: var(--fluid-b3-h, 70%);
+  left: var(--fluid-b3-x, 15%);
+  bottom: var(--fluid-b3-b, -10%);
+  background: var(--fluid-b3-bg);
+  animation: fluidDrift3 var(--fluid-dur-3, 34s) ease-in-out infinite alternate;
+}
+
+.fluidBlob4 {
+  width: var(--fluid-b4-w, 55%);
+  height: var(--fluid-b4-h, 55%);
+  left: var(--fluid-b4-x, 40%);
+  top: var(--fluid-b4-y, 25%);
+  background: var(--fluid-b4-bg);
+  animation: fluidSwirl var(--fluid-dur-4, 38s) ease-in-out infinite;
+}
+
+.fluidVortex {
+  position: absolute;
+  left: 50%;
+  top: 42%;
+  width: 140%;
+  height: 140%;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(
+    ellipse 45% 38% at 50% 48%,
+    var(--fluid-vortex-core, rgba(0, 180, 220, 0.14)) 0%,
+    transparent 62%
+  );
+  filter: blur(48px);
+  mix-blend-mode: screen;
+  opacity: var(--fluid-vortex-opacity, 0.85);
+  animation: fluidVortexSpin var(--fluid-dur-vortex, 52s) linear infinite;
+}
+
+.fluidCaustic {
+  position: absolute;
+  inset: -15%;
+  background: linear-gradient(
+    125deg,
+    transparent 0%,
+    var(--fluid-caustic-a, rgba(120, 220, 255, 0.06)) 22%,
+    transparent 38%,
+    var(--fluid-caustic-b, rgba(80, 160, 255, 0.05)) 55%,
+    transparent 72%,
+    var(--fluid-caustic-c, rgba(180, 240, 255, 0.05)) 88%,
+    transparent 100%
+  );
+  background-size: 200% 200%;
+  opacity: var(--fluid-caustic-opacity, 0.9);
+  mix-blend-mode: overlay;
+  animation: fluidCausticShift var(--fluid-dur-caustic, 24s) ease-in-out infinite
+    alternate;
+}
+
+.fluidNoiseSvg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: var(--fluid-turbulence-opacity, 0.2);
+  mix-blend-mode: soft-light;
+}
+
+@keyframes fluidBasePulse {
+  0% {
+    filter: brightness(1) saturate(1);
+  }
+  100% {
+    filter: brightness(1.07) saturate(1.06);
+  }
+}
+
+@keyframes fluidDrift1 {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1) rotate(0deg);
+  }
+  100% {
+    transform: translate3d(18%, 14%, 0) scale(1.14) rotate(7deg);
+  }
+}
+
+@keyframes fluidDrift2 {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1.05) rotate(0deg);
+  }
+  100% {
+    transform: translate3d(-20%, -16%, 0) scale(0.92) rotate(-6deg);
+  }
+}
+
+@keyframes fluidDrift3 {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  100% {
+    transform: translate3d(22%, -12%, 0) scale(1.16);
+  }
+}
+
+@keyframes fluidSwirl {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1) rotate(0deg);
+  }
+  33% {
+    transform: translate3d(-12%, 14%, 0) scale(1.1) rotate(12deg);
+  }
+  66% {
+    transform: translate3d(10%, -10%, 0) scale(0.9) rotate(-10deg);
+  }
+}
+
+@keyframes fluidVortexSpin {
+  from {
+    transform: translate3d(-50%, -50%, 0) rotate(0deg);
+  }
+  to {
+    transform: translate3d(-50%, -50%, 0) rotate(360deg);
+  }
+}
+
+@keyframes fluidCausticShift {
+  0% {
+    background-position: 0% 20%;
+  }
+  100% {
+    background-position: 100% 80%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fluidBase,
+  .fluidBlob1,
+  .fluidBlob2,
+  .fluidBlob3,
+  .fluidBlob4,
+  .fluidVortex,
+  .fluidCaustic {
+    animation: none !important;
+  }
+
+  .fluidVortex {
+    transform: translate3d(-50%, -50%, 0);
+  }
+}

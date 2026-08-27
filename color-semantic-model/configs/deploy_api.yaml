@@ -1,0 +1,14 @@
+# SynGlyph API inference — HPC v2 checkpoint + fine-tuned candidate index.
+defaults:
+  - hpc_v2
+
+paths:
+  candidate_embeddings: artifacts/candidate_bank/candidate_embeddings_hpc_v2.npy
+
+train:
+  final_model_dir: models/hpc_color_sentence_transformer_v2/final
+
+inference:
+  device: auto
+  top_k_default: 8
+  normalize_embeddings: true

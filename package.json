@@ -1,0 +1,19 @@
+{
+  "name": "synglyph",
+  "private": true,
+  "scripts": {
+    "dev:web": "pnpm --filter web-english dev",
+    "dev:web-english": "pnpm --filter web-english dev",
+    "dev:web-chinese": "pnpm --filter web-chinese dev",
+    "dev:web-presentation": "pnpm --filter web-presentation dev",
+    "dev:web-presentation:poll": "pnpm --filter web-presentation dev:poll",
+    "dev:web-presentation:clean": "pnpm --filter web-presentation dev:clean",
+    "dev:web-presentation:turbo": "pnpm --filter web-presentation dev:turbo",
+    "dev:byo": "pnpm dev:api & pnpm dev:web-presentation",
+    "dev:color-studio": "pnpm --filter web-color-studio dev",
+    "dev:color-studio:clean": "pnpm --filter web-color-studio dev:clean",
+    "dev:api": "pnpm --filter api dev",
+    "fetch-chinese-graphics": "python scripts/download_chinese_graphics.py"
+  },
+  "packageManager": "pnpm@9.0.0"
+}

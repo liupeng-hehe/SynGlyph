@@ -1,0 +1,105 @@
+{
+  "version": 2,
+  "glyph": "n",
+  "bbox": [
+    0.32941176470588235,
+    0.30980392156862746,
+    0.6784313725490196,
+    0.6941176470588235
+  ],
+  "grid": {
+    "show": false
+  },
+  "image_width": 256,
+  "image_height": 256,
+  "cuts": [
+    {
+      "cut_id": "c1774424257860",
+      "type": "line",
+      "points": [
+        [
+          0.4470588235294118,
+          0.3176470588235294
+        ],
+        [
+          0.4470588235294118,
+          0.5607843137254902
+        ]
+      ],
+      "thickness": 5,
+      "created_by_user": true
+    }
+  ],
+  "pieces": [
+    {
+      "piece_id": "p0",
+      "component_id": 0,
+      "original_centroid": [
+        0.6032560446528915,
+        0.48347177487709786
+      ],
+      "exploded_centroid": [
+        0.6028389254684745,
+        0.4832632152848893
+      ],
+      "offset_dx": -0.000417119184417003,
+      "offset_dy": -0.00020855959220855702,
+      "bbox_piece": [
+        0.4627450980392157,
+        0.30980392156862746,
+        0.6784313725490196,
+        0.6941176470588235
+      ],
+      "label_suggested": "unknown",
+      "label_final": "hook",
+      "orientation": "curved",
+      "opening_dir": "down",
+      "side_in_glyph": "right",
+      "vertical_in_glyph": "top",
+      "confidence": 0.42,
+      "closed": false
+    },
+    {
+      "piece_id": "p1",
+      "component_id": 1,
+      "original_centroid": [
+        0.3803921568627451,
+        0.5058823529411764
+      ],
+      "exploded_centroid": [
+        0.3805810556535009,
+        0.5056934085337119
+      ],
+      "offset_dx": 0.0001888987907558426,
+      "offset_dy": -0.00018894440746453078,
+      "bbox_piece": [
+        0.32941176470588235,
+        0.3176470588235294,
+        0.43137254901960786,
+        0.6941176470588235
+      ],
+      "label_suggested": "unknown",
+      "label_final": "line",
+      "orientation": "curved",
+      "opening_dir": "none",
+      "side_in_glyph": "left",
+      "vertical_in_glyph": "middle",
+      "confidence": 0.42,
+      "closed": false
+    }
+  ],
+  "relations": [
+    {
+      "relation_id": "r0",
+      "type": "above",
+      "from_id": "p0",
+      "to_id": "p1"
+    },
+    {
+      "relation_id": "r1",
+      "type": "left_of",
+      "from_id": "p1",
+      "to_id": "p0"
+    }
+  ]
+}

@@ -1,0 +1,52 @@
+# Full stack: Postgres + FastAPI + English Next.js
+#
+#   docker compose up --build
+#
+# Web is published on host port 31415 (not 3000) so local `pnpm dev` on :3000 does not conflict.
+# Open http://localhost:31415 (web) and http://localhost:8000/docs (API).
+# NEXT_PUBLIC_API_URL is baked at web build time. Use 127.0.0.1 so browsers that resolve
+# "localhost" to IPv6 (::1) hit the same listener as IPv4 dev servers (avoids split traffic).
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: synglyph
+    ports:
+      - "5432:5432"
+    volumes:
+      - synglyph_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d synglyph"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/synglyph
+      SYNGLYPH_CORS_ORIGINS: http://localhost:31415,http://127.0.0.1:31415,http://localhost:3000,http://127.0.0.1:3000
+    depends_on:
+      db:
+        condition: service_healthy
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web-english/Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: http://127.0.0.1:8000
+    ports:
+      - "31415:3000"
+    depends_on:
+      - api
+
+volumes:
+  synglyph_pgdata:

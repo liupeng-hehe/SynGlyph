@@ -1,0 +1,12 @@
+defaults:
+  - base
+
+train:
+  batch_size: 64
+  epochs: 3
+  gradient_accumulation_steps: 1
+  fp16: true
+  max_train_samples: null
+  max_val_samples: null
+  output_dir: models/color_sentence_transformer
+  final_model_dir: models/color_sentence_transformer/final

@@ -1,0 +1,16 @@
+# Core (Phase 0/1). Install editable package: pip install -e ".[dev]"
+pandas>=2.0
+pyarrow>=14.0
+numpy>=1.24
+pydantic>=2
+omegaconf>=2.3
+pyyaml>=6.0
+tqdm>=4.66
+
+# Dev
+pytest>=7.0
+ruff>=0.1
+
+# Training extras (Phase 4+): pip install -e ".[train]"
+
+# Color-Pedia HF loading: pip install -e ".[color_pedia]"

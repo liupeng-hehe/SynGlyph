@@ -1,0 +1,105 @@
+{
+  "version": 2,
+  "glyph": "s",
+  "bbox": [
+    0.33725490196078434,
+    0.3058823529411765,
+    0.6705882352941176,
+    0.6980392156862745
+  ],
+  "grid": {
+    "show": false
+  },
+  "image_width": 256,
+  "image_height": 256,
+  "cuts": [
+    {
+      "cut_id": "c1774417820744",
+      "type": "line",
+      "points": [
+        [
+          0.37254901960784315,
+          0.5058823529411764
+        ],
+        [
+          0.7411764705882353,
+          0.5058823529411764
+        ]
+      ],
+      "thickness": 5,
+      "created_by_user": true
+    }
+  ],
+  "pieces": [
+    {
+      "piece_id": "p0",
+      "component_id": 0,
+      "original_centroid": [
+        0.48713522967872597,
+        0.3993556107889165
+      ],
+      "exploded_centroid": [
+        0.48713522967872597,
+        0.3993556107889165
+      ],
+      "offset_dx": 0,
+      "offset_dy": 0,
+      "bbox_piece": [
+        0.34509803921568627,
+        0.3058823529411765,
+        0.6627450980392157,
+        0.49411764705882355
+      ],
+      "label_suggested": "unknown",
+      "label_final": "arc",
+      "orientation": "curved",
+      "opening_dir": "right",
+      "side_in_glyph": "center",
+      "vertical_in_glyph": "top",
+      "confidence": 0.42,
+      "closed": false
+    },
+    {
+      "piece_id": "p1",
+      "component_id": 1,
+      "original_centroid": [
+        0.5225659760759649,
+        0.6102663706992232
+      ],
+      "exploded_centroid": [
+        0.5227468007092796,
+        0.6102663706992232
+      ],
+      "offset_dx": 0.00018082463331470233,
+      "offset_dy": 0,
+      "bbox_piece": [
+        0.33725490196078434,
+        0.5176470588235295,
+        0.6705882352941176,
+        0.6980392156862745
+      ],
+      "label_suggested": "unknown",
+      "label_final": "arc",
+      "orientation": "curved",
+      "opening_dir": "left",
+      "side_in_glyph": "center",
+      "vertical_in_glyph": "bottom",
+      "confidence": 0.42,
+      "closed": false
+    }
+  ],
+  "relations": [
+    {
+      "relation_id": "r0",
+      "type": "left_of",
+      "from_id": "p0",
+      "to_id": "p1"
+    },
+    {
+      "relation_id": "r1",
+      "type": "above",
+      "from_id": "p0",
+      "to_id": "p1"
+    }
+  ]
+}

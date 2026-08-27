@@ -1,0 +1,42 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Dark app shell: readable default text + native controls on dark backgrounds (GrainientBg). */
+html {
+  color-scheme: dark;
+}
+body {
+  color: #e4e4e7;
+}
+
+@keyframes tear-off {
+  0% {
+    transform: rotate(0deg) translateY(0) scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: rotate(-8deg) translateY(-20px) scale(1.02);
+    opacity: 0.95;
+  }
+  100% {
+    transform: rotate(-15deg) translateY(-120px) scale(0.8);
+    opacity: 0;
+  }
+}
+
+.animate-tear-off {
+  animation: tear-off 0.5s ease-out forwards;
+  pointer-events: none;
+}
+
+/* DotGrid-style background: subtle dot pattern (dark) */
+.grainient-bg {
+  --dot-color: rgba(255, 255, 255, 0.08);
+  --dot-size: 2px;
+  --dot-gap: 20px;
+  background-color: #0c0c12;
+  background-image: radial-gradient(var(--dot-color) var(--dot-size), transparent 0);
+  background-size: var(--dot-gap) var(--dot-gap);
+  position: relative;
+}

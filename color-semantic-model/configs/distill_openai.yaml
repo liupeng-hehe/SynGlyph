@@ -1,0 +1,23 @@
+defaults:
+  - full_train_v2
+
+paths:
+  distill_seeds_jsonl: data/raw/user_curated/distill_seeds.jsonl
+  raw_openai_distill_pairs: data/raw/user_curated/openai_distill_pairs.csv
+  raw_openai_distill_palette: data/raw/user_curated/openai_distill_palette.csv
+  raw_openai_distill_audit: artifacts/logs/openai_distill_audit.jsonl
+  raw_synthetic_studio_bulk_pairs: data/raw/user_curated/synthetic_studio_bulk_pairs.csv
+  raw_synthetic_studio_bulk_palette: data/raw/user_curated/synthetic_studio_bulk_palette.csv
+  raw_lab_uniform_teacher_pairs: data/raw/user_curated/lab_uniform_teacher_5000_pairs.csv
+  raw_lab_uniform_teacher_palette: data/raw/user_curated/lab_uniform_teacher_5000_palette.csv
+  lab_uniform_teacher_report_json: artifacts/logs/lab_uniform_teacher_5000_report.json
+
+distill:
+  openai_model: gpt-4o-mini
+  variants_per_seed: 1
+  pair_weight: 3.5
+
+data:
+  training_pairs:
+    weights:
+      user_curated: 3.5

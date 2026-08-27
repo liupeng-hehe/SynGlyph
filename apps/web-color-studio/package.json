@@ -1,0 +1,28 @@
+{
+  "name": "web-color-studio",
+  "private": true,
+  "scripts": {
+    "dev": "next dev -p 3005",
+    "dev:clean": "rm -rf .next && next dev -p 3005",
+    "build": "next build",
+    "start": "next start -p 3005"
+  },
+  "dependencies": {
+    "@react-pdf/renderer": "^3.4.4",
+    "@synglyph/shared": "workspace:*",
+    "html-to-image": "^1.11.11",
+    "html2canvas": "^1.4.1",
+    "next": "^14.0.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "autoprefixer": "^10.4.0",
+    "postcss": "^8.4.0",
+    "tailwindcss": "^3.4.0",
+    "typescript": "^5.0.0"
+  }
+}

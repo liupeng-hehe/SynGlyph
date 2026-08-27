@@ -1,0 +1,82 @@
+{
+  "version": 2,
+  "glyph": "i",
+  "bbox": [
+    0.45098039215686275,
+    0.23529411764705882,
+    0.5568627450980392,
+    0.7686274509803922
+  ],
+  "grid": {
+    "show": true
+  },
+  "image_width": 256,
+  "image_height": 256,
+  "cuts": [],
+  "pieces": [
+    {
+      "piece_id": "p0",
+      "component_id": 0,
+      "original_centroid": [
+        0.5039339006042669,
+        0.2901960784313726
+      ],
+      "exploded_centroid": [
+        0.5039339006042669,
+        0.2901960784313726
+      ],
+      "offset_dx": 0,
+      "offset_dy": 0,
+      "bbox_piece": [
+        0.45098039215686275,
+        0.23529411764705882,
+        0.5568627450980392,
+        0.34509803921568627
+      ],
+      "label_suggested": "unknown",
+      "label_final": "loop",
+      "orientation": "curved",
+      "opening_dir": "none",
+      "side_in_glyph": "center",
+      "vertical_in_glyph": "top",
+      "confidence": 0.42,
+      "closed": false
+    },
+    {
+      "piece_id": "p1",
+      "component_id": 1,
+      "original_centroid": [
+        0.5039410825148342,
+        0.5804615395734408
+      ],
+      "exploded_centroid": [
+        0.5038054032431254,
+        0.5804615395734408
+      ],
+      "offset_dx": -0.00013567927170876626,
+      "offset_dy": 0,
+      "bbox_piece": [
+        0.45098039215686275,
+        0.39215686274509803,
+        0.5568627450980392,
+        0.7686274509803922
+      ],
+      "label_suggested": "unknown",
+      "label_final": "line",
+      "orientation": "curved",
+      "opening_dir": "none",
+      "side_in_glyph": "center",
+      "vertical_in_glyph": "bottom",
+      "confidence": 0.42,
+      "closed": false
+    }
+  ],
+  "relations": [
+    {
+      "relation_id": "r0",
+      "type": "above",
+      "from_id": "p0",
+      "to_id": "p1"
+    }
+  ]
+}

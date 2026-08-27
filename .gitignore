@@ -1,0 +1,59 @@
+# Dependencies (large - do not commit)
+node_modules/
+.pnpm-store/
+
+# Build output (large - do not commit)
+apps/web/.next/
+apps/web-chinese/.next/
+apps/web-english/.next/
+apps/web-color-studio/.next/
+apps/web-presentation/.next/
+apps/web/tsconfig.tsbuildinfo
+apps/web-chinese/tsconfig.tsbuildinfo
+apps/web-english/tsconfig.tsbuildinfo
+apps/web-color-studio/tsconfig.tsbuildinfo
+dist/
+build/
+
+# Python
+*.pyc
+__pycache__/
+*.egg-info/
+.eggs/
+
+# Environment
+.env
+.env.local
+.env.*.local
+.venv/
+venv/
+
+# Local SQLite (dev)
+*.db
+*.db-wal
+*.db-shm
+
+# MakeMeAHanzi full graphics (~tens of MB); run: pnpm fetch-chinese-graphics
+data/chinese_glyphs/graphics.txt
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Letter-sequence training runs (optional local output)
+**/letter_sequence_runs/
+data/training_runs/
+
+# Generated ML artifacts / large local datasets (optional: remove the line below if you version experiments)
+artifacts/

@@ -1,0 +1,46 @@
+# Letter sequence BiLSTM — default training config
+
+data:
+  max_seq_len: 64
+  train_ratio: 0.8
+  split_seed: 42
+  split_key: stimulus_id  # group entire stimulus into train or val
+
+model:
+  model_family: bilstm
+  emb_dim: 64
+  hidden: 128
+  num_layers: 1
+  dropout: 0.1
+  max_len: 64
+  pos_dim: 16
+  use_extra_features: true
+  extra_dim: 16
+  use_word_aggregate: true
+  heads:
+    dominant_letter: true
+    spread_pair: true
+  word_aggregate:
+    temperature: 1.0
+  phon_layout_version: phon_layout_v1
+
+ablation:
+  use_syllable: true
+  use_stress: true
+  use_neighbors: true
+
+loss_weights:
+  lab: 1.0
+  prominence: 1.0
+  spread: 1.0
+  boundary: 1.0
+  dominant_letter: 0.3
+  word_lab_aux: 0.2
+  spread_pair: 0.15
+
+train:
+  epochs: 50
+  batch_size: 16
+  lr: 0.001
+  weight_decay: 0.0001
+  device: cpu

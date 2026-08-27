@@ -1,0 +1,39 @@
+{
+  "history": [
+    {
+      "epoch": 1,
+      "train_loss": 0.82,
+      "val_loss": 0.71,
+      "train_loss_lab": 0.3,
+      "train_loss_prominence": 0.2,
+      "train_loss_spread": 0.2,
+      "train_loss_boundary": 0.12
+    },
+    {
+      "epoch": 2,
+      "train_loss": 0.65,
+      "val_loss": 0.58,
+      "train_loss_lab": 0.25,
+      "train_loss_prominence": 0.15,
+      "train_loss_spread": 0.15,
+      "train_loss_boundary": 0.1
+    },
+    {
+      "epoch": 3,
+      "train_loss": 0.52,
+      "val_loss": 0.49,
+      "train_loss_lab": 0.2,
+      "train_loss_prominence": 0.12,
+      "train_loss_spread": 0.12,
+      "train_loss_boundary": 0.08
+    }
+  ],
+  "best_val_loss": 0.49,
+  "val_detail": {
+    "mae_lab": 0.15,
+    "mae_prominence": 0.08,
+    "mae_spread": 0.09,
+    "mae_boundary": 0.07
+  },
+  "_comment": "Replace by copying metrics.json from training output (data/training_runs/<run_id>/)."
+}

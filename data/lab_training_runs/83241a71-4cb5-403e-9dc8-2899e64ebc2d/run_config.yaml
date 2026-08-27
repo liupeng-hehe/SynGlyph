@@ -1,0 +1,27 @@
+data:
+  max_seq_len: 64
+  train_ratio: 0.85
+  split_seed: 2101569504
+  split_key: stimulus_id
+model_family: bilstm
+model:
+  model_family: bilstm
+  emb_dim: 64
+  hidden: 128
+  num_layers: 1
+  dropout: 0.1
+  max_len: 64
+  pos_dim: 16
+  use_extra_features: true
+  extra_dim: 4
+loss_weights:
+  lab: 1.0
+  prominence: 1.0
+  spread: 1.0
+  boundary: 1.0
+train:
+  epochs: 12
+  batch_size: 8
+  lr: 0.001
+  weight_decay: 0.0001
+  device: cpu

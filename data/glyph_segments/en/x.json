@@ -1,0 +1,99 @@
+{
+  "version": 2,
+  "glyph": "x",
+  "bbox": [
+    0.3215686274509804,
+    0.3137254901960784,
+    0.6862745098039216,
+    0.6901960784313725
+  ],
+  "grid": {
+    "show": true
+  },
+  "image_width": 256,
+  "image_height": 256,
+  "cuts": [
+    {
+      "cut_id": "c1774415007590",
+      "type": "line",
+      "points": [
+        [
+          0.25098039215686274,
+          0.4980392156862745
+        ],
+        [
+          0.7843137254901961,
+          0.4980392156862745
+        ]
+      ],
+      "thickness": 4,
+      "created_by_user": true
+    }
+  ],
+  "pieces": [
+    {
+      "piece_id": "p0",
+      "component_id": 0,
+      "original_centroid": [
+        0.5034532740797375,
+        0.39680158009588884
+      ],
+      "exploded_centroid": [
+        0.5034532740797375,
+        0.39666104536637203
+      ],
+      "offset_dx": 0,
+      "offset_dy": -0.0001405347295168058,
+      "bbox_piece": [
+        0.3254901960784314,
+        0.3137254901960784,
+        0.6862745098039216,
+        0.49019607843137253
+      ],
+      "label_suggested": "unknown",
+      "label_final": "diagonal",
+      "orientation": "curved",
+      "opening_dir": "none",
+      "side_in_glyph": "center",
+      "vertical_in_glyph": "top",
+      "confidence": 0.42,
+      "closed": false
+    },
+    {
+      "piece_id": "p1",
+      "component_id": 1,
+      "original_centroid": [
+        0.504689994730343,
+        0.6038586473498344
+      ],
+      "exploded_centroid": [
+        0.504689994730343,
+        0.6038586473498344
+      ],
+      "offset_dx": 0,
+      "offset_dy": 0,
+      "bbox_piece": [
+        0.3215686274509804,
+        0.5058823529411764,
+        0.6862745098039216,
+        0.6901960784313725
+      ],
+      "label_suggested": "unknown",
+      "label_final": "diagonal",
+      "orientation": "curved",
+      "opening_dir": "none",
+      "side_in_glyph": "center",
+      "vertical_in_glyph": "bottom",
+      "confidence": 0.42,
+      "closed": false
+    }
+  ],
+  "relations": [
+    {
+      "relation_id": "r0",
+      "type": "above",
+      "from_id": "p0",
+      "to_id": "p1"
+    }
+  ]
+}

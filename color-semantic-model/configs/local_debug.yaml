@@ -1,0 +1,36 @@
+defaults:
+  - base
+
+paths:
+  raw_xkcd: data/raw/xkcd/rgb.txt
+
+data:
+  sources:
+    xkcd: true
+    color_pedia: true
+  color_pedia:
+    max_rows: 1000
+  training_pairs:
+    enabled_sources:
+      candidate_self: true
+      color_pedia_metadata: true
+      user_curated: true
+      nrc_word_colour: false
+      colors_in_context: false
+    max_pairs_per_color: 4
+    max_metadata_pairs_per_color: 4
+
+inference:
+  encode_batch_size: 64
+  top_k_default: 8
+
+
+train:
+  batch_size: 8
+  epochs: 1
+  max_train_samples: 1000
+  max_val_samples: 200
+  output_dir: models/debug_color_sentence_transformer
+  final_model_dir: models/debug_color_sentence_transformer/final
+  fp16: false
+  bf16: false

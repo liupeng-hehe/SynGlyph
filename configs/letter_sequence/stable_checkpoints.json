@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "description": "English UI lists only entries with is_stable=true. Paths are relative to repo root unless absolute.",
+  "checkpoints": [
+    {
+      "checkpoint_id": "example_bilstm_v1",
+      "path": "data/letter_sequence/models/placeholder/letter_sequence.pt",
+      "model_family": "bilstm",
+      "is_stable": false,
+      "config_path": "configs/letter_sequence_v1.yaml",
+      "has_onnx": false,
+      "onnx_path": null,
+      "onnx_dir": null,
+      "export_report_path": null,
+      "parity_status": "unknown",
+      "parity_report_path": null,
+      "notes": "Replace with a real stable checkpoint; set is_stable to true when verified."
+    }
+  ]
+}

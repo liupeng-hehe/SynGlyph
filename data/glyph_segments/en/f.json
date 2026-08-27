@@ -1,0 +1,173 @@
+{
+  "version": 2,
+  "glyph": "f",
+  "bbox": [
+    0.38823529411764707,
+    0.24705882352941178,
+    0.615686274509804,
+    0.7607843137254902
+  ],
+  "grid": {
+    "show": true
+  },
+  "image_width": 256,
+  "image_height": 256,
+  "cuts": [
+    {
+      "cut_id": "c1774424602787",
+      "type": "line",
+      "points": [
+        [
+          0.41568627450980394,
+          0.37254901960784315
+        ],
+        [
+          0.5882352941176471,
+          0.37254901960784315
+        ]
+      ],
+      "thickness": 5,
+      "created_by_user": true
+    },
+    {
+      "cut_id": "c1774424604869",
+      "type": "line",
+      "points": [
+        [
+          0.43137254901960786,
+          0.4745098039215686
+        ],
+        [
+          0.5725490196078431,
+          0.4745098039215686
+        ]
+      ],
+      "thickness": 5,
+      "created_by_user": true
+    }
+  ],
+  "pieces": [
+    {
+      "piece_id": "p0",
+      "component_id": 0,
+      "original_centroid": [
+        0.5258160462252534,
+        0.30191910580657383
+      ],
+      "exploded_centroid": [
+        0.5258160462252534,
+        0.30191910580657383
+      ],
+      "offset_dx": 0,
+      "offset_dy": 0,
+      "bbox_piece": [
+        0.4392156862745098,
+        0.24705882352941178,
+        0.615686274509804,
+        0.3607843137254902
+      ],
+      "label_suggested": "unknown",
+      "label_final": "arc",
+      "orientation": "curved",
+      "opening_dir": "down",
+      "side_in_glyph": "center",
+      "vertical_in_glyph": "top",
+      "confidence": 0.42,
+      "closed": false
+    },
+    {
+      "piece_id": "p1",
+      "component_id": 1,
+      "original_centroid": [
+        0.5020527952281235,
+        0.4234976838631893
+      ],
+      "exploded_centroid": [
+        0.5018718793613914,
+        0.4234976838631893
+      ],
+      "offset_dx": -0.0001809158667320787,
+      "offset_dy": 0,
+      "bbox_piece": [
+        0.38823529411764707,
+        0.3843137254901961,
+        0.615686274509804,
+        0.4627450980392157
+      ],
+      "label_suggested": "unknown",
+      "label_final": "line",
+      "orientation": "horizontal",
+      "opening_dir": "none",
+      "side_in_glyph": "center",
+      "vertical_in_glyph": "middle",
+      "confidence": 0.42,
+      "closed": false
+    },
+    {
+      "piece_id": "p2",
+      "component_id": 2,
+      "original_centroid": [
+        0.49019607843137253,
+        0.6235294117647059
+      ],
+      "exploded_centroid": [
+        0.4900089586922563,
+        0.6233422920255897
+      ],
+      "offset_dx": -0.00018711973911622604,
+      "offset_dy": -0.00018711973911622604,
+      "bbox_piece": [
+        0.4392156862745098,
+        0.48627450980392156,
+        0.5411764705882353,
+        0.7607843137254902
+      ],
+      "label_suggested": "unknown",
+      "label_final": "line",
+      "orientation": "curved",
+      "opening_dir": "none",
+      "side_in_glyph": "center",
+      "vertical_in_glyph": "bottom",
+      "confidence": 0.42,
+      "closed": false
+    }
+  ],
+  "relations": [
+    {
+      "relation_id": "r0",
+      "type": "attached_to",
+      "from_id": "p0",
+      "to_id": "p1"
+    },
+    {
+      "relation_id": "r1",
+      "type": "above",
+      "from_id": "p0",
+      "to_id": "p1"
+    },
+    {
+      "relation_id": "r2",
+      "type": "above",
+      "from_id": "p0",
+      "to_id": "p2"
+    },
+    {
+      "relation_id": "r3",
+      "type": "left_of",
+      "from_id": "p1",
+      "to_id": "p0"
+    },
+    {
+      "relation_id": "r4",
+      "type": "above",
+      "from_id": "p1",
+      "to_id": "p2"
+    },
+    {
+      "relation_id": "r5",
+      "type": "left_of",
+      "from_id": "p2",
+      "to_id": "p0"
+    }
+  ]
+}

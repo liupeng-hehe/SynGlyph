@@ -1,0 +1,99 @@
+/* GPU-friendly ring rotation */
+@keyframes lexiconSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.lexiconDisk {
+  --klein-blue: #002fa7;
+  --klein-blue-hover: #0a40c9;
+}
+
+.ringOuter {
+  transform-origin: 500px 500px;
+  animation: lexiconSpin var(--dur-outer) linear infinite;
+}
+
+.ringMiddle {
+  transform-origin: 500px 500px;
+  animation: lexiconSpin var(--dur-mid) linear infinite reverse;
+}
+
+.ringInner {
+  transform-origin: 500px 500px;
+  animation: lexiconSpin var(--dur-inner) linear infinite;
+}
+
+.lexiconDisk:hover .ringOuter {
+  animation-duration: var(--dur-outer-slow);
+}
+
+.lexiconDisk:hover .ringMiddle {
+  animation-duration: var(--dur-mid-slow);
+}
+
+.lexiconDisk:hover .ringInner {
+  animation-duration: var(--dur-inner-slow);
+}
+
+/* Surface = per-letter tspans; hover must target tspans, not <text> only */
+.ringSurfaceText tspan {
+  transition: fill 0.45s ease;
+}
+
+.lexiconDisk:hover .ringSurfaceText tspan {
+  fill: var(--klein-blue-hover);
+}
+
+.ringSubmergedText {
+  transition: filter 0.45s ease, opacity 0.45s ease;
+}
+
+.lexiconDisk:hover .ringSubmergedText {
+  filter: brightness(1.06) saturate(1.03);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ringOuter,
+  .ringMiddle,
+  .ringInner {
+    animation: none;
+  }
+
+  .ringSurfaceText,
+  .ringSubmergedText {
+    transition: none;
+  }
+}
+
+/* Cursor ripples — water region only */
+@keyframes waterRippleExpand {
+  from {
+    transform: translate(-50%, -50%) scale(var(--ripple-scale-start, 0.12));
+    opacity: var(--ripple-opacity-peak, 0.18);
+  }
+  to {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 0;
+  }
+}
+
+.waterRippleRing {
+  position: absolute;
+  width: var(--ripple-end, 100px);
+  height: var(--ripple-end, 100px);
+  margin: 0;
+  padding: 0;
+  border: var(--ripple-stroke, 1px) solid var(--ripple-color, rgba(165, 195, 230, 0.35));
+  border-radius: 50%;
+  pointer-events: none;
+  animation: waterRippleExpand var(--ripple-dur, 1.2s) ease-out forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .waterRippleRing {
+    animation: none;
+    opacity: 0 !important;
+  }
+}

@@ -1,0 +1,229 @@
+project:
+  seed: 42
+  artifacts_dir: artifacts
+  models_dir: models
+
+paths:
+  raw_xkcd: data/raw/xkcd/rgb.txt
+  raw_user_curated: data/raw/user_curated/user_pairs.csv
+  raw_user_curated_palette: data/raw/user_curated/curated_palette.csv
+  raw_nrc_word_colour: data/raw/nrc_word_colour
+  candidate_bank_parquet: artifacts/candidate_bank/candidate_colors.parquet
+  candidate_bank_jsonl: artifacts/candidate_bank/candidate_colors.jsonl
+  candidate_schema_report: artifacts/candidate_bank/schema_report.md
+  candidate_bank_inspection_md: artifacts/candidate_bank/inspection_report.md
+  candidate_bank_inspection_json: artifacts/candidate_bank/inspection_report.json
+  train_pairs: artifacts/train_pairs/train_pairs.jsonl
+  val_pairs: artifacts/train_pairs/val_pairs.jsonl
+  test_pairs: artifacts/train_pairs/test_pairs.jsonl
+  train_pair_stats: artifacts/train_pairs/stats.md
+  candidate_embeddings: artifacts/candidate_bank/candidate_embeddings.npy
+  candidate_metadata: artifacts/candidate_bank/candidate_metadata.parquet
+  baseline_retrieval_json: artifacts/eval_reports/baseline_retrieval.json
+  baseline_retrieval_md: artifacts/eval_reports/baseline_retrieval.md
+  baseline_qualitative_md: artifacts/eval_reports/baseline_qualitative.md
+  baseline_qualitative_json: artifacts/eval_reports/baseline_qualitative.json
+  metadata_val_pairs: artifacts/train_pairs/metadata_val_pairs.jsonl
+  metadata_test_pairs: artifacts/train_pairs/metadata_test_pairs.jsonl
+  trained_model_dir: models/color_sentence_transformer/final
+  training_output_dir: models/color_sentence_transformer
+  fine_tuned_candidate_embeddings: artifacts/candidate_bank/candidate_embeddings_finetuned.npy
+  fine_tuned_retrieval_json: artifacts/eval_reports/fine_tuned_retrieval.json
+  fine_tuned_retrieval_md: artifacts/eval_reports/fine_tuned_retrieval.md
+  fine_tuned_qualitative_json: artifacts/eval_reports/fine_tuned_qualitative.json
+  fine_tuned_qualitative_md: artifacts/eval_reports/fine_tuned_qualitative.md
+  compare_report_md: artifacts/eval_reports/fine_tuned_vs_baseline.md
+  train_summary_json: artifacts/eval_reports/train_summary.json
+  train_summary_md: artifacts/eval_reports/train_summary.md
+
+data:
+  sources:
+    xkcd: true
+    color_pedia: false
+    user_curated_palette: true
+  candidate_bank:
+    dedupe: true
+  inspection:
+    descriptor_max_recommended_chars: 256
+    overused_token_warn_pct: 0.25
+    suspicious_tokens:
+      - nan
+      - none
+      - null
+      - undefined
+      - html
+      - http
+      - https
+      - "[]"
+      - "{}"
+      - n/a
+  color_pedia:
+    dataset_name: boltuix/color-pedia
+    cache_dir: data/cache/huggingface
+    local_dir: data/raw/color_pedia
+    write_schema_inspection: true
+    schema_inspection_path: data/raw/color_pedia/schema_inspection.json
+    max_rows: null
+    descriptor_max_chars: 256
+    column_candidates:
+      name: ["name", "color_name", "title", "color"]
+      hex: ["hex", "hex_code", "hex_value", "HEX"]
+      rgb: ["rgb", "RGB"]
+      r: ["r", "red"]
+      g: ["g", "green"]
+      b: ["b", "blue"]
+      h: ["h", "hue"]
+      s: ["s", "saturation"]
+      l: ["l", "lightness", "luminosity"]
+      mood: ["mood", "moods"]
+      emotion: ["emotion", "emotions"]
+      symbolism: ["symbolism", "symbolic_meaning", "meaning"]
+      personality: ["personality", "personalities"]
+      keywords: ["keywords", "tags"]
+      use_case: ["use_case", "use_cases", "usage", "applications"]
+
+  training_pairs:
+    enabled_sources:
+      candidate_self: true
+      color_pedia_metadata: true
+      user_curated: true
+      nrc_word_colour: false
+      colors_in_context: false
+    split:
+      train: 0.8
+      val: 0.1
+      test: 0.1
+      seed: 42
+      group_strategy: mixed
+      leakage_check: true
+    weights:
+      xkcd_self: 0.6
+      color_pedia_self: 0.7
+      color_pedia_metadata: 1.0
+      user_curated: 2.5
+      nrc_word_colour: 0.9
+    max_pairs_per_color: 8
+    max_metadata_pairs_per_color: 6
+    min_anchor_chars: 2
+    max_anchor_chars: 128
+    max_positive_chars: 220
+    max_metadata_terms: 8
+    max_metadata_terms_per_anchor: 5
+    metadata_anchor_fields:
+      - mood
+      - moods
+      - emotion
+      - emotions
+      - symbolism
+      - symbolic_meaning
+      - meaning
+      - personality
+      - personalities
+      - keywords
+      - tags
+      - use_case
+      - use_cases
+      - usage
+      - applications
+      - category
+      - description
+    generic_anchor_terms:
+      - color
+      - colour
+      - colors
+      - colours
+      - design
+      - style
+      - aesthetic
+      - beautiful
+      - modern
+      - creative
+      - emotional
+      - expressive
+      - personality
+      - mood
+      - feeling
+      - vibrant
+    suspicious_tokens_to_clean:
+      - html
+      - http
+      - https
+      - nan
+      - none
+      - null
+      - undefined
+      - n/a
+      - "[]"
+      - "{}"
+
+model:
+  name: sentence-transformers/all-MiniLM-L6-v2
+  max_seq_length: 128
+  cache_dir: data/cache/huggingface
+
+train:
+  model_name: sentence-transformers/all-MiniLM-L6-v2
+  output_dir: models/color_sentence_transformer
+  final_model_dir: models/color_sentence_transformer/final
+  loss: mnrl
+  batch_size: 16
+  epochs: 1
+  lr: 2.0e-5
+  warmup_ratio: 0.1
+  max_seq_length: 128
+  fp16: false
+  bf16: false
+  gradient_accumulation_steps: 1
+  seed: 42
+  max_train_samples: null
+  max_val_samples: null
+  save_strategy: epoch
+  logging_steps: 50
+  eval_steps: null
+  use_no_duplicate_sampler: true
+  use_weighted_oversampling: true
+  max_oversample_copies: 4
+  num_workers: 0
+
+inference:
+  top_k_default: 8
+  normalize_embeddings: true
+  use_faiss: false
+  encode_batch_size: 128
+  device: auto
+  auto_reembed_on_mismatch: false
+
+evaluation:
+  ks: [1, 3, 5, 10]
+  success_review:
+    output_dir: artifacts/success_review
+    expected_prompt_families:
+      passionate and intense: [red, orange, pink]
+      calm professional healthcare brand: [blue, green, grey, white]
+      fresh organic skincare: [green, white, brown]
+      quiet luxury: [black, purple, brown, yellow, white, grey]
+      playful summer festival: [yellow, orange, pink, red]
+      dark mysterious cinematic mood: [black, blue, purple]
+      warm nostalgic jazz poster: [orange, brown, red, yellow]
+      clean minimal tech product: [white, grey, blue]
+      earthy handmade coffee brand: [brown, orange, white, black]
+      romantic soft feminine palette: [pink, red, purple, white]
+    thresholds:
+      xkcd_r10_max_regression: 0.02
+      metadata_exact_r10_min_delta: 0.02
+      metadata_anchor_group_r10_min_delta: 0.05
+      metadata_family_soft_r5_min_delta: 0.05
+      min_acceptable_prompts: 7
+      max_regressed_prompts: 2
+  fixed_prompts:
+    - passionate and intense
+    - calm professional healthcare brand
+    - fresh organic skincare
+    - quiet luxury
+    - playful summer festival
+    - dark mysterious cinematic mood
+    - warm nostalgic jazz poster
+    - clean minimal tech product
+    - earthy handmade coffee brand
+    - romantic soft feminine palette
+

@@ -1,0 +1,26 @@
+{
+  "name": "web-chinese",
+  "private": true,
+  "scripts": {
+    "dev": "node scripts/dev-with-port.mjs",
+    "build": "next build",
+    "start": "next start -p ${PORT:-3001}"
+  },
+  "dependencies": {
+    "@synglyph/annotation-core": "workspace:*",
+    "@synglyph/chinese-glyph-core": "workspace:*",
+    "@synglyph/shared": "workspace:*",
+    "next": "^14.0.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "zustand": "^4.5.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "postcss": "^8.4.0",
+    "tailwindcss": "^3.4.0",
+    "typescript": "^5.0.0"
+  }
+}

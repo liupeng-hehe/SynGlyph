@@ -1,0 +1,34 @@
+defaults:
+  - base
+  - full_train_local
+
+paths:
+  fine_tuned_candidate_embeddings: artifacts/candidate_bank/candidate_embeddings_full_finetuned_v2.npy
+  fine_tuned_retrieval_json: artifacts/eval_reports/full_v2_fine_tuned_retrieval.json
+  fine_tuned_retrieval_md: artifacts/eval_reports/full_v2_fine_tuned_retrieval.md
+  fine_tuned_qualitative_json: artifacts/eval_reports/full_v2_fine_tuned_qualitative.json
+  fine_tuned_qualitative_md: artifacts/eval_reports/full_v2_fine_tuned_qualitative.md
+  compare_report_md: artifacts/eval_reports/full_v2_fine_tuned_vs_baseline.md
+
+data:
+  sources:
+    xkcd: true
+    color_pedia: true
+    user_curated_palette: true
+  training_pairs:
+    enabled_sources:
+      candidate_self: true
+      color_pedia_metadata: true
+      user_curated: true
+    weights:
+      user_curated: 3.5
+
+train:
+  output_dir: models/full_color_sentence_transformer_v2
+  final_model_dir: models/full_color_sentence_transformer_v2/final
+  batch_size: 32
+  epochs: 3
+  max_train_samples: null
+
+inference:
+  auto_reembed_on_mismatch: true

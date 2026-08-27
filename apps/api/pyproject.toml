@@ -1,0 +1,51 @@
+[project]
+name = "synglyph-api"
+version = "0.1.0"
+description = "SynGlyph FastAPI backend"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+  "alembic>=1.13",
+  "fastapi>=0.110",
+  # Must stay <2 for PyTorch wheels built against NumPy 1.x ABI (see letter_sequence package).
+  "numpy>=1.24,<2",
+  "pydantic>=2.0",
+  "pydantic-settings>=2.0",
+  "pyyaml>=6.0",
+  "sqlalchemy>=2.0",
+  # Keep in sync with packages/letter_sequence (torch pins numpy<2).
+  "torch>=2.0,<2.3",
+  "synglyph-letter-sequence",
+  "uvicorn[standard]>=0.27",
+  # 1.24+ has no macOS x86_64 (Intel) wheels; Apple Silicon / Linux / Windows still get current releases.
+  "onnxruntime>=1.16,<1.24; sys_platform == 'darwin' and platform_machine == 'x86_64'",
+  "onnxruntime>=1.16; sys_platform != 'darwin' or platform_machine != 'x86_64'",
+  "psycopg2-binary>=2.9",
+  "sentencepiece>=0.2",
+  "wordfreq>=3.1.1",
+  "color-semantic-model[train]",
+  # ST 5.5+ for HPC checkpoints; transformers 4.x matches torch<2.3 (letter_sequence).
+  "sentence-transformers>=5.5.1",
+  "transformers>=4.41,<5",
+  "omegaconf>=2.3",
+  "pyarrow>=14.0",
+]
+
+# Local monorepo package (includes torch, numpy, pyyaml for letter-sequence training scripts).
+[tool.uv.sources]
+synglyph-letter-sequence = { path = "../../packages/letter_sequence", editable = true }
+color-semantic-model = { path = "../../color-semantic-model", editable = true }
+
+[project.optional-dependencies]
+dev = ["pytest>=7.0"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["app"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]

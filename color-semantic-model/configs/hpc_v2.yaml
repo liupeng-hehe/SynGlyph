@@ -1,0 +1,21 @@
+defaults:
+  - full_train_v2
+
+paths:
+  fine_tuned_candidate_embeddings: artifacts/candidate_bank/candidate_embeddings_hpc_v2.npy
+  fine_tuned_retrieval_json: artifacts/eval_reports/hpc_v2_fine_tuned_retrieval.json
+  fine_tuned_retrieval_md: artifacts/eval_reports/hpc_v2_fine_tuned_retrieval.md
+  fine_tuned_qualitative_json: artifacts/eval_reports/hpc_v2_fine_tuned_qualitative.json
+  fine_tuned_qualitative_md: artifacts/eval_reports/hpc_v2_fine_tuned_qualitative.md
+  compare_report_md: artifacts/eval_reports/hpc_v2_fine_tuned_vs_baseline.md
+  train_summary_json: artifacts/eval_reports/hpc_v2_train_summary.json
+  train_summary_md: artifacts/eval_reports/hpc_v2_train_summary.md
+
+train:
+  output_dir: ${oc.env:SCRATCH,models}/models/hpc_color_sentence_transformer_v2
+  final_model_dir: ${oc.env:SCRATCH,models}/models/hpc_color_sentence_transformer_v2/final
+  batch_size: 64
+  epochs: 3
+  fp16: true
+  max_train_samples: null
+  use_weighted_oversampling: true

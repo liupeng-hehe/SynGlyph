@@ -1,0 +1,49 @@
+defaults:
+  - base
+
+paths:
+  raw_xkcd: data/raw/xkcd/rgb.txt
+  fine_tuned_candidate_embeddings: artifacts/candidate_bank/candidate_embeddings_full_finetuned.npy
+  fine_tuned_retrieval_json: artifacts/eval_reports/full_fine_tuned_retrieval.json
+  fine_tuned_retrieval_md: artifacts/eval_reports/full_fine_tuned_retrieval.md
+  fine_tuned_qualitative_json: artifacts/eval_reports/full_fine_tuned_qualitative.json
+  fine_tuned_qualitative_md: artifacts/eval_reports/full_fine_tuned_qualitative.md
+  compare_report_md: artifacts/eval_reports/full_fine_tuned_vs_baseline.md
+
+data:
+  sources:
+    xkcd: true
+    color_pedia: true
+  color_pedia:
+    max_rows: 1000
+  training_pairs:
+    enabled_sources:
+      candidate_self: true
+      color_pedia_metadata: true
+      user_curated: true
+      nrc_word_colour: false
+      colors_in_context: false
+    max_pairs_per_color: 4
+    max_metadata_pairs_per_color: 4
+
+inference:
+  encode_batch_size: 64
+  top_k_default: 8
+
+train:
+  model_name: sentence-transformers/all-MiniLM-L6-v2
+  output_dir: models/full_color_sentence_transformer
+  final_model_dir: models/full_color_sentence_transformer/final
+  loss: mnrl
+  batch_size: 32
+  epochs: 3
+  lr: 2.0e-5
+  warmup_ratio: 0.1
+  max_seq_length: 128
+  max_train_samples: null
+  max_val_samples: null
+  fp16: false
+  bf16: false
+  gradient_accumulation_steps: 1
+  seed: 42
+  use_no_duplicate_sampler: true
