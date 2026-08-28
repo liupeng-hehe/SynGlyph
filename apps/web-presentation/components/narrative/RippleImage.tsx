@@ -51,7 +51,7 @@ const FRAG = `
   varying vec2 vUv;
 
   void main() {
-    vec2 dispUv = vUv * 1.35;
+    vec2 dispUv = vUv;
     vec4 disp = texture2D(uDisp, dispUv);
     vec2 dispVec = (disp.rg - 0.5) * 2.0;
 
@@ -213,20 +213,25 @@ function createDisplacementTexture(): THREE.DataTexture {
   const data = new Uint8Array(size * size * 4);
   for (let y = 0; y < size; y++) {
     for (let x = 0; x < size; x++) {
-      const nx = x / size;
-      const ny = y / size;
-      const n1 = fbm(nx * 3.2, ny * 3.2);
-      const n2 = fbm(nx * 3.2 + 4.7, ny * 3.2 + 2.1);
+      const nx = x / (size - 1);
+      const ny = y / (size - 1);
+      const cx = nx - 0.5;
+      const cy = ny - 0.5;
+      const dist = Math.hypot(cx, cy);
+      // Stronger at the image center, still present out to the corners.
+      const fromCenter = 0.42 + 0.58 * Math.exp(-dist * dist * 4.8);
+      const n1 = fbm(nx * 1.65, ny * 1.65);
+      const n2 = fbm(nx * 1.65 + 4.7, ny * 1.65 + 2.1);
       const idx = (y * size + x) * 4;
-      data[idx] = Math.floor(n1 * 255);
-      data[idx + 1] = Math.floor(n2 * 255);
+      data[idx] = Math.floor(clamp(0.5 + (n1 - 0.5) * fromCenter, 0, 1) * 255);
+      data[idx + 1] = Math.floor(clamp(0.5 + (n2 - 0.5) * fromCenter, 0, 1) * 255);
       data[idx + 2] = 128;
       data[idx + 3] = 255;
     }
   }
   const texture = new THREE.DataTexture(data, size, size, THREE.RGBAFormat);
-  texture.wrapS = THREE.RepeatWrapping;
-  texture.wrapT = THREE.RepeatWrapping;
+  texture.wrapS = THREE.ClampToEdgeWrapping;
+  texture.wrapT = THREE.ClampToEdgeWrapping;
   texture.minFilter = THREE.LinearFilter;
   texture.magFilter = THREE.LinearFilter;
   texture.needsUpdate = true;

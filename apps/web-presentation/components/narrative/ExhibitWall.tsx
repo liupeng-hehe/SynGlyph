@@ -5,7 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { exhibits, type Exhibit } from "@/content/exhibits";
 
 import { RippleImage } from "./RippleImage";
-import { isSectionSnapAligned } from "./sectionScrollUtils";
+import { useSnapSectionWheelSequence } from "./useSnapSectionWheelSequence";
 
 function splitPath(path: string): string[] {
   return path.split(/\s*[↔→]\s*/).map((part) => part.trim());
@@ -21,7 +21,6 @@ function featuredTitleLines(exhibit: Exhibit): { lead: string; work: string } {
 
 export function ExhibitWall() {
   const rootRef = useRef<HTMLDivElement>(null);
-  const lockRef = useRef(false);
   const [activeIndex, setActiveIndex] = useState(0);
   const active = exhibits[activeIndex];
 
@@ -36,33 +35,12 @@ export function ExhibitWall() {
     [activeIndex, goTo],
   );
 
-  useEffect(() => {
-    const root = rootRef.current;
-    if (!root) return;
-
-    const onWheel = (event: WheelEvent) => {
-      const section = root.closest<HTMLElement>("[data-snap-section]");
-      if (!isSectionSnapAligned(section)) return;
-
-      const goingDown = event.deltaY > 0;
-      const atEnd = activeIndex >= exhibits.length - 1;
-      const atStart = activeIndex <= 0;
-
-      if ((goingDown && !atEnd) || (!goingDown && !atStart)) {
-        event.preventDefault();
-        event.stopPropagation();
-        if (lockRef.current) return;
-        lockRef.current = true;
-        step(goingDown ? 1 : -1);
-        window.setTimeout(() => {
-          lockRef.current = false;
-        }, 420);
-      }
-    };
-
-    root.addEventListener("wheel", onWheel, { passive: false, capture: true });
-    return () => root.removeEventListener("wheel", onWheel, { capture: true });
-  }, [activeIndex, step]);
+  useSnapSectionWheelSequence({
+    rootRef,
+    itemCount: exhibits.length,
+    activeIndex,
+    onIndexChange: goTo,
+  });
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -79,7 +57,14 @@ export function ExhibitWall() {
   const title = featuredTitleLines(active);
 
   return (
-    <div ref={rootRef} className="exhibit-feature">
+    <div
+      ref={rootRef}
+      className="exhibit-feature"
+      data-wheel-sequence
+      data-wheel-at={
+        activeIndex <= 0 ? "start" : activeIndex >= exhibits.length - 1 ? "end" : "mid"
+      }
+    >
       <div className="exhibit-feature__hero">
         <h3 className="exhibit-feature__title font-body" aria-live="polite">
           <span className="exhibit-feature__title-lead">{title.lead}</span>

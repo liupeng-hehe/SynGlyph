@@ -4,7 +4,6 @@ import type { Chapter } from "@/content/synesthesiaContent";
 import { synestheteProfiles } from "@/content/synesthetes";
 
 import { ArcArchiveFloor, type ArcArchiveItem } from "./ArcArchiveFloor";
-import { SourcesDrawer } from "./SourcesDrawer";
 
 type Props = {
   chapter: Chapter;
@@ -33,17 +32,12 @@ const synestheteItems: ArcArchiveItem[] = synestheteProfiles.map((profile) => ({
 
 export function SynestheteArchiveSection({ chapter }: Props) {
   return (
-    <>
-      <ArcArchiveFloor
-        sectionId={chapter.id}
-        items={synestheteItems}
-        sectionClassName="wordblue-archive wordblue-archive--synesthetes"
-        ariaLabel={chapter.title}
-        hint="Scroll to move through the figures — the page continues after the last profile."
-      />
-      <div className="wordblue-archive__sources-below">
-        <SourcesDrawer sourceKeys={chapter.sourceKeys} />
-      </div>
-    </>
+    <ArcArchiveFloor
+      sectionId={chapter.id}
+      items={synestheteItems}
+      sectionClassName="wordblue-archive wordblue-archive--synesthetes"
+      ariaLabel={chapter.title}
+      hint="Scroll to move through the figures."
+    />
   );
 }

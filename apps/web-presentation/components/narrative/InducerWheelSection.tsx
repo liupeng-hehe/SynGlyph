@@ -1,20 +1,14 @@
 "use client";
 
 import Image from "next/image";
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 
 import type { Chapter } from "@/content/synesthesiaContent";
 import { inducerPairImages } from "@/content/inducerPairImages";
 
 import { SemicircleArcWheel } from "./SemicircleArcWheel";
 import { SourcesDrawer } from "./SourcesDrawer";
-import { isSectionSnapAligned } from "./sectionScrollUtils";
+import { useSnapSectionWheelSequence } from "./useSnapSectionWheelSequence";
 
 type Props = {
   chapter: Chapter;
@@ -55,7 +49,6 @@ function PairImagePanel({
 
 export function InducerWheelSection({ chapter }: Props) {
   const rootRef = useRef<HTMLDivElement>(null);
-  const lockRef = useRef(false);
   const [activeIndex, setActiveIndex] = useState(initialIndex);
   const [animating, setAnimating] = useState(false);
 
@@ -93,40 +86,12 @@ export function InducerWheelSection({ chapter }: Props) {
     [maxIndex, pulseAnimation],
   );
 
-  const stepPair = useCallback(
-    (delta: number) => {
-      setPairIndex(activeIndex + delta);
-    },
-    [activeIndex, setPairIndex],
-  );
-
-  useEffect(() => {
-    const root = rootRef.current;
-    if (!root) return;
-
-    const onWheel = (event: WheelEvent) => {
-      const section = root.closest<HTMLElement>("[data-snap-section]");
-      if (!isSectionSnapAligned(section)) return;
-
-      const goingDown = event.deltaY > 0;
-      const atEnd = activeIndex >= maxIndex;
-      const atStart = activeIndex <= 0;
-
-      if ((goingDown && !atEnd) || (!goingDown && !atStart)) {
-        event.preventDefault();
-        event.stopPropagation();
-        if (lockRef.current) return;
-        lockRef.current = true;
-        stepPair(goingDown ? 1 : -1);
-        window.setTimeout(() => {
-          lockRef.current = false;
-        }, 420);
-      }
-    };
-
-    root.addEventListener("wheel", onWheel, { passive: false, capture: true });
-    return () => root.removeEventListener("wheel", onWheel, { capture: true });
-  }, [activeIndex, maxIndex, stepPair]);
+  useSnapSectionWheelSequence({
+    rootRef,
+    itemCount: inducerPairImages.length,
+    activeIndex,
+    onIndexChange: setPairIndex,
+  });
 
   if (inducerPairImages.length === 0) return null;
 
@@ -137,7 +102,12 @@ export function InducerWheelSection({ chapter }: Props) {
       className="narrative-chapter narrative-chapter--pair-wheel min-h-[100svh] scroll-mt-0"
       aria-labelledby={`${chapter.id}-title`}
     >
-      <div ref={rootRef} className="pair-wheel">
+      <div
+        ref={rootRef}
+        className="pair-wheel"
+        data-wheel-sequence
+        data-wheel-at={activeIndex <= 0 ? "start" : activeIndex >= maxIndex ? "end" : "mid"}
+      >
         <header className="pair-wheel__header">
           <p className="pair-wheel__eyebrow m-0 font-body">{chapter.eyebrow}</p>
           <h3 id={`${chapter.id}-title`} className="pair-wheel__heading m-0 font-body">

@@ -6,7 +6,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { Chapter } from "@/content/synesthesiaContent";
 
 import { useSmoothScroll } from "./SmoothScrollProvider";
-import { SourcesDrawer } from "./SourcesDrawer";
 
 type Props = {
   chapter: Chapter;
@@ -127,10 +126,6 @@ export function OpeningProseSection({ chapter }: Props) {
                   </p>
                 );
               })}
-            </div>
-
-            <div className="opening-prose__sources">
-              <SourcesDrawer sourceKeys={chapter.sourceKeys} />
             </div>
           </div>
         </div>
