@@ -1714,7 +1714,13 @@ body {
 }
 
 .chapter-transition--artworks-sparks {
-  background: linear-gradient(180deg, var(--bg) 0%, #1a2744 52%, #05070d 100%);
+  background: linear-gradient(
+    180deg,
+    #fffcf7 0%,
+    color-mix(in srgb, #fffcf7 72%, #05070d) 28%,
+    color-mix(in srgb, #fffcf7 38%, #05070d) 58%,
+    #05070d 100%
+  );
   color: #f5f7fb;
 }
 
@@ -6992,13 +6998,44 @@ body {
   color: rgb(245 247 251 / 0.45);
 }
 
+.neuro-scroll-section--sparks .neuro-scroll-section__hero-title {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 clamp(1.25rem, 4vw, 3rem);
+  font-size: clamp(2.625rem, 5.4vw, 3.975rem);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  line-height: 1.1;
+  text-align: center;
+  color: rgb(245 247 251 / 0.92);
+  pointer-events: none;
+}
+
+.neuro-scroll-section--sparks .neuro-scroll-section__header {
+  position: absolute;
+  z-index: 4;
+  left: clamp(1.25rem, 4vw, 3rem);
+  bottom: clamp(1.6rem, 4.2vh, 2.6rem);
+  top: auto;
+  max-width: min(22rem, 40vw);
+  text-shadow: 0 2px 22px rgb(5 7 13 / 0.88);
+  transition: opacity 0.45s ease;
+}
+
 .neuro-scroll-section--sparks .neuro-scroll-section__title {
   font-size: clamp(1.75rem, 3.6vw, 2.65rem);
 }
 
 .neuro-scroll-section--sparks .neuro-scroll-section__figure {
   aspect-ratio: 1 / 1;
-  width: clamp(14rem, min(26vw, 36vh), 24rem);
+  width: clamp(16.8rem, min(31.2vw, 43.2vh), 28.8rem);
+  transition:
+    opacity 0.7s cubic-bezier(0.22, 1, 0.36, 1),
+    filter 0.55s ease;
 }
 
 .neuro-scroll-section--sparks .neuro-scroll-section__caption {
@@ -7015,6 +7052,10 @@ body {
 @media (min-width: 1100px) {
   .neuro-scroll-section__sticky {
     padding-left: clamp(5.5rem, 9vw, 7.5rem);
+  }
+
+  .neuro-scroll-section--sparks .neuro-scroll-section__header {
+    left: clamp(5.5rem, 9vw, 7.5rem);
   }
 }
 
@@ -7130,7 +7171,26 @@ body {
   font-size: clamp(1.1rem, 2vw, 1.45rem);
   line-height: 1.6;
   color: rgb(245 247 251 / 0.88);
-  transition: opacity 0.35s ease;
+  transition: opacity 0.45s ease;
+  animation: neuro-caption-in 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.neuro-scroll-section__caption--hidden {
+  opacity: 0;
+  pointer-events: none;
+  animation: none;
+}
+
+@keyframes neuro-caption-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.6rem);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .neuro-scroll-section__hint {
@@ -7195,6 +7255,16 @@ body {
     width: clamp(12rem, 72vw, 18rem);
   }
 
+  .neuro-scroll-section--sparks .neuro-scroll-section__figure {
+    width: clamp(14.4rem, 78vw, 21.6rem);
+  }
+
+  .neuro-scroll-section--sparks .neuro-scroll-section__header {
+    left: clamp(1.25rem, 4vw, 3rem);
+    bottom: clamp(1.25rem, 3vh, 2rem);
+    max-width: min(18rem, 58vw);
+  }
+
   .neuro-scroll-section__caption {
     top: auto;
     right: auto;
@@ -7207,6 +7277,16 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .neuro-scroll-section__figure {
     will-change: auto;
+    transition: none;
+  }
+
+  .neuro-scroll-section__caption {
+    animation: none;
+    transition: none;
+  }
+
+  .neuro-scroll-section--sparks .neuro-scroll-section__header {
+    transition: none;
   }
 }
 

@@ -23,11 +23,14 @@ function clamp(value: number, min: number, max: number): number {
 }
 
 /** Figure width fraction — fallback until first layout measure. */
-const FIGURE_W = 0.26;
+const FIGURE_W = 0.312;
 const FIGURE_H = FIGURE_W;
 
 /** Gap between img i bottom-right and img i+1 top-left (px). */
-const CHAIN_CORNER_GAP_PX = 30;
+const CHAIN_CORNER_GAP_PX = 40;
+
+/** Extra travel along the chain so figures sit farther apart. */
+const CHAIN_PATH_GAP = 0.045;
 
 type ChainSpacing = {
   dx: number;
@@ -56,12 +59,18 @@ function chainSpacing(widthPx: number, heightPx: number): ChainSpacing {
 }
 
 function chainStep(chain: ChainSpacing) {
-  return { stepX: chain.dx + chain.gapX, stepY: chain.dy + chain.gapY };
+  return {
+    stepX: chain.dx * (1 + CHAIN_PATH_GAP) + chain.gapX,
+    stepY: chain.dy * (1 + CHAIN_PATH_GAP) + chain.gapY,
+  };
 }
 
-/** Lead travels one chain step per slide; ends when the last slide is centred. */
+/** Extra chain steps after the last slide is centred, so it can reach the top-left. */
+const LAST_SLIDE_EXIT_STEPS = 2;
+
+/** Lead travels one step per slide, then the last slide continues to the top-left. */
 function travelStepsFor(slideCount: number) {
-  return Math.max(slideCount - 1, 1);
+  return Math.max(slideCount - 1, 1) + LAST_SLIDE_EXIT_STEPS;
 }
 
 /** At scroll = 0, image 0 sits below the viewport (right edge flush). */
@@ -142,6 +151,14 @@ function galleryProgress(globalProgress: number): number {
   );
 }
 
+/** Light + caption when the figure reaches 1/3 of the way up the page. */
+const LIGHT_LINE_FROM_TOP = 2 / 3;
+
+/** Dim when the figure reaches 2/3 of the way up the page. */
+const DARK_LINE_FROM_TOP = 1 / 3;
+
+const LIGHT_LINE_HYSTERESIS_PX = 16;
+
 /** Lead moves from lower-right toward upper-left as progress increases. */
 function leadPosition(progress: number, chain: ChainSpacing, travelSteps: number) {
   const { stepX, stepY } = chainStep(chain);
@@ -167,13 +184,63 @@ function slidePosition(
   };
 }
 
-function primarySlideIndex(
-  globalProgress: number,
-  slideCount: number,
-  travelSteps: number,
+function viewportBox(viewportEl?: HTMLElement | null) {
+  const viewport = viewportEl?.getBoundingClientRect();
+  return {
+    top: viewport?.top ?? 0,
+    height: viewport?.height ?? window.innerHeight,
+  };
+}
+
+function lightLineY(viewportEl?: HTMLElement | null): number {
+  const { top, height } = viewportBox(viewportEl);
+  return top + height * LIGHT_LINE_FROM_TOP;
+}
+
+function figureYFromTop(
+  el: HTMLElement | null,
+  viewportEl?: HTMLElement | null,
+): number | null {
+  if (!el) return null;
+  const rect = el.getBoundingClientRect();
+  if (rect.height <= 0) return null;
+  const { top, height } = viewportBox(viewportEl);
+  if (height <= 0) return null;
+  return (rect.top + rect.height / 2 - top) / height;
+}
+
+function figureIsPastDarkLine(
+  el: HTMLElement | null,
+  viewportEl?: HTMLElement | null,
+): boolean {
+  const yFromTop = figureYFromTop(el, viewportEl);
+  if (yFromTop == null) return false;
+  return yFromTop <= DARK_LINE_FROM_TOP;
+}
+
+function latestSlidePastLightLine(
+  figures: Array<HTMLElement | null>,
+  previousIndex: number,
+  viewportEl?: HTMLElement | null,
 ): number {
-  const progress = galleryProgress(globalProgress);
-  return clamp(Math.round(progress * travelSteps), 0, slideCount - 1);
+  const line = lightLineY(viewportEl);
+  let latest = -1;
+
+  for (let i = 0; i < figures.length; i += 1) {
+    const el = figures[i];
+    if (!el) continue;
+
+    const rect = el.getBoundingClientRect();
+    if (rect.height <= 0) continue;
+
+    const centerY = rect.top + rect.height / 2;
+    const threshold = i === previousIndex ? line + LIGHT_LINE_HYSTERESIS_PX : line;
+    if (centerY <= threshold) {
+      latest = i;
+    }
+  }
+
+  return latest;
 }
 
 function slideOpacity(
@@ -195,15 +262,62 @@ function slideOpacity(
   const revealEnd = revealAt + SLIDE_REVEAL_FADE;
   if (progress <= revealAt) return 0;
 
-  const reveal = smoothstep(revealAt, revealEnd, progress);
-  const travel = progress * travelStepsFor(slideCount);
+  return smoothstep(revealAt, revealEnd, progress);
+}
 
-  if (index < travel - 2.4) {
-    const exit = clamp(1 - (travel - index - 2.4) * 1.2, 0, 1);
-    return reveal * exit;
+/** Fade a figure only as it actually leaves the top / left of the page. */
+function figureLeaveFade(
+  el: HTMLElement | null,
+  viewportEl?: HTMLElement | null,
+): number {
+  if (!el) return 1;
+
+  const rect = el.getBoundingClientRect();
+  if (rect.width <= 0 || rect.height <= 0) return 0;
+
+  const view = viewportEl?.getBoundingClientRect();
+  const left = view?.left ?? 0;
+  const top = view?.top ?? 0;
+  const right = view?.right ?? window.innerWidth;
+  const bottom = view?.bottom ?? window.innerHeight;
+  const midX = (left + right) / 2;
+  const midY = (top + bottom) / 2;
+  const cx = rect.left + rect.width / 2;
+  const cy = rect.top + rect.height / 2;
+
+  const visibleW = Math.min(rect.right, right) - Math.max(rect.left, left);
+  const visibleH = Math.min(rect.bottom, bottom) - Math.max(rect.top, top);
+  if (visibleW <= 0 || visibleH <= 0) {
+    const incoming = cy > bottom || cx > right;
+    return incoming ? 1 : 0;
   }
 
-  return reveal;
+  const leaving = cy < midY - 20 || cx < midX - 40;
+  if (!leaving) return 1;
+
+  const visibleRatio = (visibleW * visibleH) / (rect.width * rect.height);
+  return smoothstep(0.06, 0.58, visibleRatio);
+}
+
+/** Bright between the 1/3 and 2/3 page lines; dim before and after. */
+function figureLuminance(
+  el: HTMLElement | null,
+  viewportEl?: HTMLElement | null,
+): number {
+  if (!el) return 0.52;
+
+  const rect = el.getBoundingClientRect();
+  if (rect.height <= 0) return 0.52;
+
+  const view = viewportEl?.getBoundingClientRect();
+  const top = view?.top ?? 0;
+  const height = view?.height ?? window.innerHeight;
+  if (height <= 0) return 0.52;
+
+  const yFromTop = (rect.top + rect.height / 2 - top) / height;
+  const lit = smoothstep(LIGHT_LINE_FROM_TOP + 0.05, LIGHT_LINE_FROM_TOP - 0.02, yFromTop);
+  const unDark = 1 - smoothstep(DARK_LINE_FROM_TOP + 0.03, DARK_LINE_FROM_TOP - 0.08, yFromTop);
+  return lerp(0.3, 1, lit * unDark);
 }
 
 function lerp(a: number, b: number, t: number): number {
@@ -219,6 +333,9 @@ function slideMotionStyle(
   layoutReady: boolean,
   slideCount: number,
   travelSteps: number,
+  captionIndex: number,
+  leaveFade = 1,
+  luminance = 0.52,
 ) {
   const progress = galleryProgress(globalProgress);
   const raw = slidePosition(progress, index, chain, travelSteps);
@@ -229,11 +346,14 @@ function slideMotionStyle(
   const x = raw.x + pull * (focusCenter.x - activeRaw.x);
   const y = raw.y + pull * (focusCenter.y - activeRaw.y);
 
-  const opacity = layoutReady ? slideOpacity(globalProgress, index, slideCount) : 0;
+  const reveal = layoutReady ? slideOpacity(globalProgress, index, slideCount) : 0;
+  const opacity = reveal * leaveFade;
+  const zBase = captionIndex < 0 ? 0 : captionIndex;
 
   return {
     opacity,
-    zIndex: index + 1,
+    zIndex: index === captionIndex ? 12 : Math.max(1, 8 - Math.abs(index - zBase)),
+    filter: `brightness(${luminance.toFixed(3)})`,
     transform: `translate3d(calc(${-x * 100}vw + ${parallax.x.toFixed(2)}px), calc(${y * 100}vh + ${parallax.y.toFixed(2)}px), 0)`,
   };
 }
@@ -284,11 +404,60 @@ export function ScrollGallerySection({
     gapY: CHAIN_CORNER_GAP_PX / 900,
   }));
   const [focusCenter, setFocusCenter] = useState<FocusCenter>(DEFAULT_FOCUS_CENTER);
+  const [captionIndex, setCaptionIndex] = useState(-1);
+  const [captionHidden, setCaptionHidden] = useState(true);
+  const [lastImageDark, setLastImageDark] = useState(false);
+  const [leaveFade, setLeaveFade] = useState<number[]>([]);
+  const [luminance, setLuminance] = useState<number[]>([]);
+  const figureRefs = useRef<Array<HTMLElement | null>>([]);
+  const captionIndexRef = useRef(-1);
   const slideCount = slides.length;
   const travelSteps = travelStepsFor(slideCount);
   const smoothScroll = useSmoothScroll();
 
-  const activeIndex = primarySlideIndex(scrollProgress, slideCount, travelSteps);
+  const syncCaptionToLightLine = useCallback(() => {
+    const viewport = stickyRef.current;
+    const next = latestSlidePastLightLine(
+      figureRefs.current,
+      captionIndexRef.current,
+      viewport,
+    );
+    captionIndexRef.current = next;
+    setCaptionIndex((prev) => (prev === next ? prev : next));
+
+    const captionDark =
+      next >= 0 && figureIsPastDarkLine(figureRefs.current[next], viewport);
+    setCaptionHidden(next < 0 || captionDark);
+    setLastImageDark(
+      figureIsPastDarkLine(figureRefs.current[slideCount - 1], viewport),
+    );
+  }, [slideCount]);
+
+  const syncFigureVisuals = useCallback(() => {
+    const viewport = stickyRef.current;
+    const nextFade = figureRefs.current.map((el) => figureLeaveFade(el, viewport));
+    const nextLuma = figureRefs.current.map((el) => figureLuminance(el, viewport));
+
+    setLeaveFade((prev) => {
+      if (
+        prev.length === nextFade.length &&
+        prev.every((value, index) => Math.abs(value - nextFade[index]) < 0.012)
+      ) {
+        return prev;
+      }
+      return nextFade;
+    });
+
+    setLuminance((prev) => {
+      if (
+        prev.length === nextLuma.length &&
+        prev.every((value, index) => Math.abs(value - nextLuma[index]) < 0.012)
+      ) {
+        return prev;
+      }
+      return nextLuma;
+    });
+  }, []);
 
   const ensureFocusCenterAnim = useCallback(() => {
     if (focusCenterAnimRef.current) return;
@@ -342,6 +511,20 @@ export function ScrollGallerySection({
   useLayoutEffect(() => {
     measureChain();
   }, [measureChain]);
+
+  useLayoutEffect(() => {
+    syncCaptionToLightLine();
+    syncFigureVisuals();
+  }, [
+    syncCaptionToLightLine,
+    syncFigureVisuals,
+    scrollProgress,
+    layoutReady,
+    chain,
+    focusCenter,
+    parallax,
+    slideCount,
+  ]);
 
   useEffect(() => {
     const figures = measureRef.current?.parentElement?.querySelectorAll<HTMLImageElement>(
@@ -426,6 +609,8 @@ export function ScrollGallerySection({
     });
     window.addEventListener("resize", updateFromScroll);
     window.addEventListener("resize", measureChain);
+    window.addEventListener("resize", syncCaptionToLightLine);
+    window.addEventListener("resize", syncFigureVisuals);
 
     const probe = measureRef.current;
     const observer =
@@ -488,6 +673,8 @@ export function ScrollGallerySection({
       unsubscribe?.();
       window.removeEventListener("resize", updateFromScroll);
       window.removeEventListener("resize", measureChain);
+      window.removeEventListener("resize", syncCaptionToLightLine);
+      window.removeEventListener("resize", syncFigureVisuals);
       window.removeEventListener("pointermove", handlePointerMove);
       window.removeEventListener("pointerleave", handlePointerLeave);
       window.removeEventListener("scroll", onScrollOrResize);
@@ -497,9 +684,23 @@ export function ScrollGallerySection({
       if (focusCenterAnimRef.current) cancelAnimationFrame(focusCenterAnimRef.current);
       observer?.disconnect();
     };
-  }, [smoothScroll, updateFromScroll, measureChain, ensureProgressAnim, ensureParallaxAnim]);
+  }, [
+    smoothScroll,
+    updateFromScroll,
+    measureChain,
+    ensureProgressAnim,
+    ensureParallaxAnim,
+    syncCaptionToLightLine,
+    syncFigureVisuals,
+  ]);
 
-  const active = slides[activeIndex] ?? slides[0];
+  const caption = captionIndex >= 0 ? slides[captionIndex]?.caption ?? "" : "";
+  const isSparks = themeClass.includes("neuro-scroll-section--sparks");
+  const firstReveal = slideOpacity(scrollProgress, 0, slideCount);
+  const heroTitleOpacity = layoutReady ? 1 - smoothstep(0.04, 0.5, firstReveal) : 1;
+  const cornerHeaderOpacity = layoutReady
+    ? smoothstep(0.18, 0.65, firstReveal) * (lastImageDark ? 0 : 1)
+    : 0;
 
   return (
     <section
@@ -513,10 +714,23 @@ export function ScrollGallerySection({
         ref={trackRef}
         className="neuro-scroll-section__track"
         data-scroll-gallery-track
-        style={{ height: `${slideCount * SCROLL_VH_PER_SLIDE}vh` }}
+        style={{ height: `${(slideCount + LAST_SLIDE_EXIT_STEPS) * SCROLL_VH_PER_SLIDE}vh` }}
       >
         <div className="neuro-scroll-section__sticky" ref={stickyRef}>
-          <header className="neuro-scroll-section__header">
+          {isSparks ? (
+            <p
+              className="neuro-scroll-section__hero-title m-0 font-body"
+              style={{ opacity: heroTitleOpacity }}
+              aria-hidden={heroTitleOpacity < 0.08}
+            >
+              {chapter.title}
+            </p>
+          ) : null}
+
+          <header
+            className="neuro-scroll-section__header"
+            style={isSparks ? { opacity: cornerHeaderOpacity } : undefined}
+          >
             <p className="neuro-scroll-section__eyebrow m-0 font-body">
               {chapter.eyebrow}
             </p>
@@ -534,6 +748,9 @@ export function ScrollGallerySection({
             {slides.map((slide, index) => (
               <figure
                 key={slide.id}
+                ref={(node) => {
+                  figureRefs.current[index] = node;
+                }}
                 className="neuro-scroll-section__figure"
                 style={slideMotionStyle(
                   scrollProgress,
@@ -544,13 +761,16 @@ export function ScrollGallerySection({
                   layoutReady,
                   slideCount,
                   travelSteps,
+                  captionIndex,
+                  leaveFade[index] ?? 1,
+                  luminance[index] ?? 0.52,
                 )}
               >
                 <Image
                   src={slide.src}
                   alt={slide.alt}
                   fill
-                  sizes="(max-width: 960px) 72vw, 28vw"
+                  sizes="(max-width: 960px) 78vw, 34vw"
                   className={`neuro-scroll-section__image${loadedSlides[index] ? " neuro-scroll-section__image--ready" : ""}`}
                   priority={index === 0}
                   onLoad={() => markSlideLoaded(index)}
@@ -559,8 +779,15 @@ export function ScrollGallerySection({
             ))}
           </div>
 
-          <p className="neuro-scroll-section__caption m-0 font-body">
-            {active?.caption}
+          <p
+            key={captionIndex}
+            className={`neuro-scroll-section__caption m-0 font-body${
+              captionHidden ? " neuro-scroll-section__caption--hidden" : ""
+            }`}
+            aria-hidden={captionHidden}
+            aria-live="polite"
+          >
+            {caption}
           </p>
 
           <p className="neuro-scroll-section__hint m-0 font-body">
