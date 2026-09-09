@@ -1,13 +1,12 @@
 "use client";
 
 import Image from "next/image";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 
 import type { Chapter } from "@/content/synesthesiaContent";
 import { inducerPairImages } from "@/content/inducerPairImages";
 
-import { SemicircleArcWheel } from "./SemicircleArcWheel";
-import { SourcesDrawer } from "./SourcesDrawer";
+import { ColorSwatchArc } from "./ColorSwatchArc";
 import { useSnapSectionWheelSequence } from "./useSnapSectionWheelSequence";
 
 type Props = {
@@ -29,7 +28,7 @@ function PairImagePanel({
 }) {
   return (
     <article
-      className={`pair-image-card${animating ? " pair-image-card--animating" : ""}`}
+      className={`pair-image-card pair-image-card--orbit${animating ? " pair-image-card--animating" : ""}`}
       aria-hidden="true"
     >
       <div className="pair-image-card__media pair-image-card__media--full">
@@ -54,24 +53,6 @@ export function InducerWheelSection({ chapter }: Props) {
 
   const maxIndex = inducerPairImages.length - 1;
   const pairImage = inducerPairImages[activeIndex] ?? inducerPairImages[0];
-
-  const leftItems = useMemo(
-    () =>
-      inducerPairImages.map((image, index) => ({
-        id: `color-${index}`,
-        label: image.colorLabel,
-      })),
-    [],
-  );
-
-  const rightItems = useMemo(
-    () =>
-      inducerPairImages.map((image, index) => ({
-        id: `emotion-${index}`,
-        label: image.emotionLabel,
-      })),
-    [],
-  );
 
   const pulseAnimation = useCallback(() => {
     setAnimating(true);
@@ -104,7 +85,7 @@ export function InducerWheelSection({ chapter }: Props) {
     >
       <div
         ref={rootRef}
-        className="pair-wheel"
+        className="pair-wheel pair-wheel--swatch"
         data-wheel-sequence
         data-wheel-at={activeIndex <= 0 ? "start" : activeIndex >= maxIndex ? "end" : "mid"}
       >
@@ -114,23 +95,14 @@ export function InducerWheelSection({ chapter }: Props) {
             Inducer / Concurrent
           </h3>
           <p className="pair-wheel__sub m-0 font-body">
-            Two clockwise wheels meet — scroll to switch the pairing image
+            Select a color — or scroll — to switch the pairing
           </p>
         </header>
 
-        <div className="pair-wheel__stage">
-          <aside className="pair-wheel__intro m-0 font-body">
-            Color has long carried emotion, while artists have explored where the senses meet.
-          </aside>
-
-          <SemicircleArcWheel
-            items={leftItems}
+        <div className="pair-wheel__stage pair-wheel__stage--orbit">
+          <ColorSwatchArc
+            items={inducerPairImages}
             activeIndex={activeIndex}
-            side="left"
-            animating={animating}
-            ariaLabel="Color wheel"
-            imageLabels
-            hideTracks
             onSelect={setPairIndex}
           />
 
@@ -139,28 +111,13 @@ export function InducerWheelSection({ chapter }: Props) {
             imageAlt={pairImage.alt}
             animating={animating}
           />
-
-          <SemicircleArcWheel
-            items={rightItems}
-            activeIndex={activeIndex}
-            side="right"
-            animating={animating}
-            ariaLabel="Emotion wheel"
-            imageLabels
-            hideTracks
-            onSelect={setPairIndex}
-          />
         </div>
 
         <footer className="pair-wheel__footer">
           <span className="pair-wheel__footer-label font-body">Colors</span>
           <span className="pair-wheel__footer-scroll font-body">Scroll to pair</span>
-          <span className="pair-wheel__footer-label font-body">Emotions</span>
+          <span aria-hidden="true" />
         </footer>
-
-        <div className="pair-wheel__sources">
-          <SourcesDrawer sourceKeys={chapter.sourceKeys} />
-        </div>
       </div>
     </section>
   );

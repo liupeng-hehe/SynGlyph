@@ -507,8 +507,8 @@ body {
 
 .pair-wheel {
   position: relative;
-  display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto;
+  display: flex;
+  flex-direction: column;
   width: 100%;
   flex: 1;
   min-height: 0;
@@ -518,6 +518,8 @@ body {
 }
 
 .pair-wheel__header {
+  position: relative;
+  z-index: 4;
   text-align: center;
 }
 
@@ -555,6 +557,92 @@ body {
   overflow: visible;
 }
 
+.pair-wheel__stage--orbit {
+  --arc-radius: min(298px, 28.8vh);
+  display: block;
+  position: absolute;
+  inset: 0;
+  min-height: 0;
+  padding: 0;
+  overflow: visible;
+}
+
+.swatch-orbit {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.swatch-orbit__ring {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: calc(var(--arc-radius) * 2);
+  height: calc(var(--arc-radius) * 2);
+  transform: translate(-50%, -50%);
+}
+
+.swatch-orbit__swatch {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 1.15rem;
+  height: 1.15rem;
+  padding: 0;
+  border: 1px solid rgb(0 47 167 / 0.08);
+  border-radius: 0.28rem;
+  box-shadow: 0 4px 10px rgb(18 24 40 / 0.08);
+  cursor: pointer;
+  pointer-events: auto;
+  transition:
+    transform 0.62s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.42s ease,
+    width 0.28s ease,
+    height 0.28s ease,
+    box-shadow 0.28s ease;
+}
+
+.swatch-orbit__swatch--light {
+  border-color: rgb(30 51 89 / 0.22);
+}
+
+.swatch-orbit__swatch--active {
+  width: 1.45rem;
+  height: 1.45rem;
+  box-shadow:
+    0 0 0 2px #f7f4ee,
+    0 0 0 3px rgb(0 47 167 / 0.45),
+    0 8px 16px rgb(18 24 40 / 0.14);
+  z-index: 2;
+}
+
+.swatch-orbit__swatch:focus-visible {
+  outline: 2px solid var(--text-display);
+  outline-offset: 3px;
+}
+
+.swatch-orbit__word {
+  position: absolute;
+  left: calc(50% + 0.15rem);
+  top: 50%;
+  z-index: 3;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  transform: translate(-50%, -50%);
+  white-space: nowrap;
+  pointer-events: none;
+  transition: color 0.42s ease;
+}
+
+.swatch-orbit__word--active {
+  font-size: clamp(2.05rem, 4.2vw, 3.35rem);
+  font-weight: 650;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+
 .pair-wheel__intro {
   position: absolute;
   left: clamp(0.25rem, 2vw, 1rem);
@@ -574,10 +662,13 @@ body {
 }
 
 .pair-wheel__footer {
+  position: relative;
+  z-index: 4;
   display: grid;
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
   gap: 1rem;
+  margin-top: auto;
   padding-top: 0.5rem;
 }
 
@@ -600,12 +691,6 @@ body {
   text-transform: uppercase;
   color: rgb(0 47 167 / 0.55);
   text-align: center;
-}
-
-.pair-wheel__sources {
-  position: absolute;
-  right: clamp(1rem, 3vw, 2rem);
-  bottom: clamp(1rem, 3vh, 1.75rem);
 }
 
 .arc-wheel {
@@ -773,6 +858,29 @@ body {
   transform: scale(0.985);
 }
 
+.pair-image-card--orbit {
+  --card-long: calc(var(--arc-radius) * 1.6);
+  position: absolute;
+  top: 50%;
+  left: calc(50% + clamp(6rem, 12vw, 10.5rem));
+  z-index: 2;
+  width: calc(var(--card-long) * 1081 / 1513);
+  height: var(--card-long);
+  min-height: 0;
+  padding: 0;
+  transform: translateY(-50%);
+}
+
+.pair-image-card--orbit .pair-image-card__media {
+  width: 100%;
+  height: 100%;
+  aspect-ratio: auto;
+}
+
+.pair-image-card--orbit.pair-image-card--animating {
+  transform: translateY(-50%) scale(0.985);
+}
+
 .pair-image-card__media {
   position: relative;
   flex: 0 0 auto;
@@ -802,6 +910,26 @@ body {
     justify-items: center;
   }
 
+  .pair-wheel__stage--orbit,
+  .swatch-orbit {
+    --arc-radius: min(168px, 26vh);
+  }
+
+  .swatch-orbit__word {
+    left: 50%;
+  }
+
+  .pair-image-card--orbit {
+    left: 50%;
+    top: auto;
+    bottom: 4.5rem;
+    transform: translateX(-50%);
+  }
+
+  .pair-image-card--orbit.pair-image-card--animating {
+    transform: translateX(-50%) scale(0.985);
+  }
+
   .arc-wheel {
     width: min(380px, 88vw);
     height: min(480px, 54vh);
@@ -818,20 +946,18 @@ body {
     width: min(440px, 94vw);
     min-height: min(580px, 78vh);
   }
-
-  .pair-wheel__sources {
-    position: static;
-    justify-self: center;
-    margin-top: 1rem;
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .arc-wheel--animating .arc-wheel__item,
   .pair-card,
   .pair-image-card,
-  .pair-image-card__image {
+  .pair-image-card__image,
+  .swatch-orbit__swatch,
+  .swatch-orbit__word,
+  .pair-wheel__emotion {
     transition: none;
+    animation: none;
   }
 
   .pair-image-card--animating {
