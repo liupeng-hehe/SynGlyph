@@ -11,23 +11,35 @@ type Props = {
 };
 
 const SPAN_DEG = 180;
-const STEP_DEG = SPAN_DEG / 6;
+/** 4th of 8 equal slots from +90° (top) to −90° (bottom). */
+const HOME_FROM_TOP = 3;
 
-function polarAngleForSlot(slot: number): number {
-  return 180 + slot * STEP_DEG;
+function visualCount(realCount: number): number {
+  return realCount + 1;
 }
 
-function wrappedSlot(activeIndex: number, itemIndex: number, count: number): number {
-  const half = Math.floor((count - 1) / 2);
-  let slot = (activeIndex - itemIndex) % count;
-  if (slot < 0) slot += count;
-  if (slot > half) slot -= count;
-  return slot;
+function stepDeg(realCount: number): number {
+  return SPAN_DEG / (visualCount(realCount) - 1);
 }
 
-function initialAngles(count: number, activeIndex: number): number[] {
+/** True `)` : slot 0 = +90°, last slot = −90°. */
+function restAngle(slotFromTop: number, realCount: number): number {
+  return 90 - slotFromTop * stepDeg(realCount);
+}
+
+/**
+ * Next color sits above the active swatch; the ghost sits between purple and red.
+ * Slot increases toward the bottom.
+ */
+function slotFromTop(visualActive: number, visualIndex: number, count: number): number {
+  const delta = (visualActive - visualIndex + count) % count;
+  return (HOME_FROM_TOP + delta) % count;
+}
+
+function restAngles(realCount: number, activeIndex: number): number[] {
+  const count = visualCount(realCount);
   return Array.from({ length: count }, (_, index) =>
-    polarAngleForSlot(wrappedSlot(activeIndex, index, count)),
+    restAngle(slotFromTop(activeIndex, index, count), realCount),
   );
 }
 
@@ -38,39 +50,56 @@ function rotationSteps(from: number, to: number, count: number): number {
   return delta;
 }
 
+function visualDelta(from: number, to: number, realCount: number): number {
+  const realDelta = rotationSteps(from, to, realCount);
+  if (realDelta > 0) {
+    return realDelta + (from + realDelta >= realCount ? 1 : 0);
+  }
+  if (realDelta < 0) {
+    return realDelta - (from + realDelta < 0 ? 1 : 0);
+  }
+  return 0;
+}
+
+/**
+ * Next color moves swatches down (angle decreases). Prev moves them up.
+ * The short arc is the visible `)`; the long way is the hidden left opening.
+ */
+function directedTarget(current: number, rest: number, angleDirection: number): number {
+  let target = rest;
+  while (target - current > 180) target -= 360;
+  while (current - target > 180) target += 360;
+
+  if (angleDirection < 0 && target > current) target -= 360;
+  if (angleDirection > 0 && target < current) target += 360;
+  return target;
+}
+
 function advanceAngles(
   current: number[],
   fromActive: number,
   toActive: number,
-  count: number,
+  realCount: number,
 ): number[] {
-  const steps = rotationSteps(fromActive, toActive, count);
-  if (steps === 0) return current;
+  const steps = visualDelta(fromActive, toActive, realCount);
+  if (steps === 0) return restAngles(realCount, toActive);
 
-  const direction = steps > 0 ? 1 : -1;
-  const next = [...current];
-  let active = fromActive;
+  const count = visualCount(realCount);
+  const angleDirection = steps > 0 ? -1 : 1;
+  const targets = restAngles(realCount, toActive);
 
-  for (let step = 0; step < Math.abs(steps); step += 1) {
-    for (let index = 0; index < count; index += 1) {
-      const slot = wrappedSlot(active, index, count);
-      if (direction === 1 && slot === 3) next[index] += SPAN_DEG;
-      else if (direction === -1 && slot === -3) next[index] -= SPAN_DEG;
-      else next[index] += direction * STEP_DEG;
-    }
-    active = (active + direction + count) % count;
-  }
-
-  return next;
+  return current.map((cur, index) =>
+    directedTarget(cur, targets[index] ?? restAngle(slotFromTop(toActive, index, count), realCount), angleDirection),
+  );
 }
 
 function normalizeDeg(deg: number): number {
   return ((deg % 360) + 360) % 360;
 }
 
-function isOnHiddenHalf(deg: number): boolean {
+function isWrappingBehind(deg: number): boolean {
   const angle = normalizeDeg(deg);
-  return angle < 90 || angle > 270;
+  return angle > 91 && angle < 269;
 }
 
 function isLightHex(hex: string): boolean {
@@ -88,17 +117,25 @@ function wordColor(hex: string): string {
   return isLightHex(hex) ? "#8b929a" : hex;
 }
 
+function swatchTransform(angle: number): string {
+  return `translate(-50%, -50%) rotate(${-angle}deg) translateX(var(--arc-radius)) rotate(${angle}deg)`;
+}
+
 export function ColorSwatchArc({ items, activeIndex, onSelect }: Props) {
-  const count = items.length;
+  const realCount = items.length;
+  const count = visualCount(realCount);
   const prevActiveRef = useRef(activeIndex);
-  const [angles, setAngles] = useState(() => initialAngles(count, activeIndex));
+  const [angles, setAngles] = useState(() => restAngles(realCount, activeIndex));
 
   useEffect(() => {
     const previous = prevActiveRef.current;
-    if (previous === activeIndex) return;
-    setAngles((current) => advanceAngles(current, previous, activeIndex, count));
+    if (previous === activeIndex) {
+      setAngles(restAngles(realCount, activeIndex));
+      return;
+    }
+    setAngles((current) => advanceAngles(current, previous, activeIndex, realCount));
     prevActiveRef.current = activeIndex;
-  }, [activeIndex, count]);
+  }, [activeIndex, realCount]);
 
   const handleKey = (event: KeyboardEvent<HTMLButtonElement>, index: number) => {
     if (event.key === "Enter" || event.key === " ") {
@@ -107,7 +144,7 @@ export function ColorSwatchArc({ items, activeIndex, onSelect }: Props) {
       return;
     }
 
-    const last = count - 1;
+    const last = realCount - 1;
     if (event.key === "ArrowDown" || event.key === "ArrowRight") {
       event.preventDefault();
       onSelect(Math.min(last, index + 1));
@@ -117,13 +154,17 @@ export function ColorSwatchArc({ items, activeIndex, onSelect }: Props) {
     }
   };
 
+  const active = items[activeIndex];
+  const displayAngles = angles.length === count ? angles : restAngles(realCount, activeIndex);
+  const ghostAngle = displayAngles[realCount] ?? restAngle(slotFromTop(activeIndex, realCount, count), realCount);
+
   return (
     <div className="swatch-orbit" aria-label="Color pairs">
       <div className="swatch-orbit__ring" role="listbox" aria-label="Color swatches">
         {items.map((item, index) => {
-          const angle = angles[index] ?? polarAngleForSlot(wrappedSlot(activeIndex, index, count));
+          const angle = displayAngles[index] ?? restAngle(slotFromTop(activeIndex, index, count), realCount);
           const isActive = index === activeIndex;
-          const hidden = isOnHiddenHalf(angle);
+          const behind = isWrappingBehind(angle);
           const light = isLightHex(item.hex);
 
           return (
@@ -131,30 +172,41 @@ export function ColorSwatchArc({ items, activeIndex, onSelect }: Props) {
               key={`${item.hex}-${item.emotionLabel}`}
               type="button"
               role="option"
-              tabIndex={hidden ? -1 : 0}
-              aria-hidden={hidden || undefined}
+              tabIndex={behind ? -1 : 0}
+              aria-hidden={behind || undefined}
               aria-selected={isActive}
               aria-label={`${item.colorLabel}, ${item.emotionLabel}, ${item.hex}`}
               className={`swatch-orbit__swatch${isActive ? " swatch-orbit__swatch--active" : ""}${light ? " swatch-orbit__swatch--light" : ""}`}
               style={{
-                transform: `translate(-50%, -50%) rotate(${-angle}deg) translateX(var(--arc-radius)) rotate(${angle}deg)`,
+                transform: swatchTransform(angle),
                 backgroundColor: item.hex,
-                opacity: hidden ? 0 : 1,
+                opacity: behind ? 0 : 1,
+                pointerEvents: behind ? "none" : "auto",
               }}
               onClick={() => onSelect(index)}
               onKeyDown={(event) => handleKey(event, index)}
             />
           );
         })}
+
+        <span
+          aria-hidden="true"
+          className="swatch-orbit__swatch swatch-orbit__swatch--ghost"
+          style={{
+            transform: swatchTransform(ghostAngle),
+            opacity: isWrappingBehind(ghostAngle) ? 0 : 1,
+          }}
+        />
+
       </div>
 
-      {items[activeIndex] ? (
+      {active ? (
         <p
-          key={items[activeIndex].emotionLabel}
+          key={active.emotionLabel}
           className="swatch-orbit__word swatch-orbit__word--active font-body"
-          style={{ color: wordColor(items[activeIndex].hex) }}
+          style={{ color: wordColor(active.hex) }}
         >
-          {items[activeIndex].emotionLabel}
+          {active.emotionLabel}
         </p>
       ) : null}
     </div>

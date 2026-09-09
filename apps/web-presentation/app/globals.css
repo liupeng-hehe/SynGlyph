@@ -517,6 +517,18 @@ body {
     clamp(1rem, 2.5vh, 1.5rem);
 }
 
+.pair-wheel--swatch {
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.pair-wheel--swatch .pair-wheel__header {
+  position: absolute;
+  top: clamp(3.5rem, 7vh, 4.75rem);
+  left: 0;
+  right: 0;
+}
+
 .pair-wheel__header {
   position: relative;
   z-index: 4;
@@ -557,40 +569,54 @@ body {
   overflow: visible;
 }
 
+.pair-wheel--swatch .pair-wheel__footer {
+  display: none;
+}
+
 .pair-wheel__stage--orbit {
-  --arc-radius: min(298px, 28.8vh);
-  display: block;
-  position: absolute;
-  inset: 0;
+  --card-long: min(68vh, 36rem);
+  --arc-radius: calc(var(--card-long) * 0.6);
+  --ring-origin-x: -2.25rem;
+  /* 4th slot on a 12-to-6 `)` is +12.857°. Drop the ring so that slot shares the word/card midline. */
+  --home-angle: calc(90deg - 3 * 180deg / 7);
+  --home-lift: calc(var(--arc-radius) * sin(var(--home-angle)));
+  display: flex;
+  position: relative;
+  flex: 1;
+  align-items: center;
+  justify-content: flex-start;
+  gap: clamp(2.5rem, 6vw, 5.5rem);
   min-height: 0;
-  padding: 0;
+  padding: 0 clamp(2.5rem, 5vw, 4.5rem) 0 clamp(4.75rem, 7.5vw, 6.5rem);
   overflow: visible;
 }
 
 .swatch-orbit {
-  position: absolute;
-  inset: 0;
+  position: relative;
+  flex: 0 0 auto;
+  width: calc(var(--arc-radius) + min(22rem, 30vw));
+  height: calc(var(--arc-radius) * 2 + 1.25rem);
   pointer-events: none;
 }
 
 .swatch-orbit__ring {
   position: absolute;
-  left: 50%;
+  left: var(--ring-origin-x);
   top: 50%;
   width: calc(var(--arc-radius) * 2);
   height: calc(var(--arc-radius) * 2);
-  transform: translate(-50%, -50%);
+  transform: translate(-50%, calc(-50% + var(--home-lift)));
 }
 
 .swatch-orbit__swatch {
   position: absolute;
   left: 50%;
   top: 50%;
-  width: 1.15rem;
-  height: 1.15rem;
+  width: 1.45rem;
+  height: 1.45rem;
   padding: 0;
   border: 1px solid rgb(0 47 167 / 0.08);
-  border-radius: 0.28rem;
+  border-radius: 0.32rem;
   box-shadow: 0 4px 10px rgb(18 24 40 / 0.08);
   cursor: pointer;
   pointer-events: auto;
@@ -606,9 +632,17 @@ body {
   border-color: rgb(30 51 89 / 0.22);
 }
 
+.swatch-orbit__swatch--ghost {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+  pointer-events: none;
+  cursor: default;
+}
+
 .swatch-orbit__swatch--active {
-  width: 1.45rem;
-  height: 1.45rem;
+  width: 1.85rem;
+  height: 1.85rem;
   box-shadow:
     0 0 0 2px #f7f4ee,
     0 0 0 3px rgb(0 47 167 / 0.45),
@@ -622,17 +656,18 @@ body {
 }
 
 .swatch-orbit__word {
+  --word-gap: clamp(4.25rem, 5.5vw, 6.25rem);
   position: absolute;
-  left: calc(50% + 0.15rem);
+  left: calc(var(--ring-origin-x) + var(--arc-radius) + var(--word-gap));
   top: 50%;
   z-index: 3;
   margin: 0;
   padding: 0;
   border: 0;
   background: none;
-  transform: translate(-50%, -50%);
   white-space: nowrap;
   pointer-events: none;
+  transform: translateY(-50%);
   transition: color 0.42s ease;
 }
 
@@ -859,16 +894,19 @@ body {
 }
 
 .pair-image-card--orbit {
-  --card-long: calc(var(--arc-radius) * 1.6);
-  position: absolute;
-  top: 50%;
-  left: calc(50% + clamp(6rem, 12vw, 10.5rem));
+  position: relative;
+  top: auto;
+  right: auto;
+  left: auto;
   z-index: 2;
+  flex: 0 0 auto;
   width: calc(var(--card-long) * 1081 / 1513);
   height: var(--card-long);
   min-height: 0;
+  margin-left: auto;
+  margin-right: 4.5rem;
   padding: 0;
-  transform: translateY(-50%);
+  transform: none;
 }
 
 .pair-image-card--orbit .pair-image-card__media {
@@ -878,7 +916,7 @@ body {
 }
 
 .pair-image-card--orbit.pair-image-card--animating {
-  transform: translateY(-50%) scale(0.985);
+  transform: scale(0.985);
 }
 
 .pair-image-card__media {
@@ -910,24 +948,32 @@ body {
     justify-items: center;
   }
 
-  .pair-wheel__stage--orbit,
+  .pair-wheel__stage--orbit {
+    --card-long: min(38vh, 20rem);
+    --arc-radius: calc(var(--card-long) * 0.6);
+    flex-direction: column;
+    justify-content: center;
+    gap: 1.25rem;
+    padding: 0.5rem 0 0;
+  }
+
   .swatch-orbit {
-    --arc-radius: min(168px, 26vh);
+    width: calc(var(--arc-radius) + 12rem);
   }
 
   .swatch-orbit__word {
-    left: 50%;
+    --word-gap: 3.25rem;
   }
 
   .pair-image-card--orbit {
-    left: 50%;
+    left: auto;
     top: auto;
-    bottom: 4.5rem;
-    transform: translateX(-50%);
+    bottom: auto;
+    transform: none;
   }
 
   .pair-image-card--orbit.pair-image-card--animating {
-    transform: translateX(-50%) scale(0.985);
+    transform: scale(0.985);
   }
 
   .arc-wheel {
