@@ -43,23 +43,25 @@ export function PersonalTransitionSection({ chapter }: Props) {
       <div className="personal-mine__layout">
         <div className="personal-mine__copy">
           <p className="narrative-eyebrow m-0 font-body">{chapter.eyebrow}</p>
-          <h2 id={`${chapter.id}-title`} className="narrative-title mt-4 font-display">
+          <h2 id={`${chapter.id}-title`} className="narrative-title personal-mine__title mt-3 font-display">
             {chapter.title}
           </h2>
           <span className="narrative-chapter__title-rule" aria-hidden="true" />
           {chapter.subtitle ? (
-            <p className="narrative-subtitle mt-4 font-body">{chapter.subtitle}</p>
+            <p className="narrative-subtitle personal-mine__subtitle mt-3 font-body">{chapter.subtitle}</p>
           ) : null}
-          <div className="personal-mine__paragraphs mt-8 space-y-5">
+          <div className="personal-mine__paragraphs">
             {chapter.body.map((paragraph) => (
-              <p key={paragraph.slice(0, 48)} className="narrative-body m-0 font-body">
+              <p key={paragraph.slice(0, 48)} className="narrative-body personal-mine__body m-0 font-body">
                 {paragraph}
               </p>
             ))}
           </div>
-          <div className="mt-8">
-            <SourcesDrawer sourceKeys={chapter.sourceKeys} />
-          </div>
+          {chapter.sourceKeys.length > 0 ? (
+            <div className="personal-mine__sources">
+              <SourcesDrawer sourceKeys={chapter.sourceKeys} />
+            </div>
+          ) : null}
         </div>
 
         <div className="personal-mine__divider" aria-hidden="true" />

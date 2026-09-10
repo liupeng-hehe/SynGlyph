@@ -1955,21 +1955,54 @@ body {
 /* --- Now, Mine personal section --- */
 
 .personal-mine {
-  padding: clamp(1.5rem, 4vw, 3rem);
+  height: 100%;
+  padding: clamp(1.15rem, 2.8vh, 2.25rem) clamp(1.5rem, 4vw, 3rem);
+  box-sizing: border-box;
 }
 
 .personal-mine__layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto minmax(0, 0.85fr);
-  gap: clamp(1.5rem, 4vw, 3rem);
+  grid-template-columns: minmax(0, 1fr) auto minmax(11.5rem, 16rem);
+  gap: clamp(1.25rem, 3vw, 2.5rem);
   align-items: start;
-  max-width: 76rem;
+  max-width: 78rem;
+  height: 100%;
   margin: 0 auto;
-  min-height: calc(100svh - clamp(3rem, 8vw, 6rem));
+  min-height: 0;
 }
 
 .personal-mine__copy {
+  display: flex;
+  flex-direction: column;
   min-width: 0;
+  min-height: 0;
+  height: 100%;
+  overflow: auto;
+}
+
+.personal-mine__title {
+  font-size: clamp(1.7rem, 3.2vw, 2.55rem);
+}
+
+.personal-mine__subtitle {
+  font-size: clamp(0.95rem, 1.5vw, 1.08rem);
+  line-height: 1.45;
+}
+
+.personal-mine__paragraphs {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(0.7rem, 1.6vh, 1.05rem);
+  margin-top: clamp(0.85rem, 2vh, 1.25rem);
+}
+
+.personal-mine__body {
+  font-size: clamp(0.9rem, 1.12vw, 1rem);
+  line-height: 1.55;
+}
+
+.personal-mine__sources {
+  margin-top: 1rem;
 }
 
 .personal-mine__divider {
@@ -2055,10 +2088,15 @@ body {
 @media (max-width: 900px) {
   .personal-mine__layout {
     grid-template-columns: 1fr;
+    gap: 1.25rem;
   }
 
   .personal-mine__divider {
     display: none;
+  }
+
+  .personal-mine__panel {
+    padding-top: 0;
   }
 }
 
