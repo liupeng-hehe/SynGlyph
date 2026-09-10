@@ -1037,7 +1037,7 @@ body {
   position: relative;
   overflow: hidden;
   border-bottom: none;
-  background: var(--bg);
+  background: #000c36;
   height: 100svh;
   max-height: 100svh;
 }
@@ -1055,7 +1055,7 @@ body {
   position: relative;
   z-index: 1;
   display: grid;
-  grid-template-rows: auto 1fr auto auto;
+  grid-template-rows: auto 1fr;
   height: 100%;
   min-height: 0;
   max-width: 88rem;
@@ -1082,6 +1082,7 @@ body {
   display: block;
   width: auto;
   height: clamp(3.2rem, 6vw, 4.75rem);
+  filter: brightness(0) invert(1);
 }
 
 .wordblue-hero__explore-wrap {
@@ -1095,7 +1096,7 @@ body {
   background: transparent;
   cursor: pointer;
   text-decoration: none;
-  color: var(--text-display);
+  color: #f8faff;
 }
 
 .wordblue-hero__explore-menu {
@@ -1143,15 +1144,15 @@ body {
   display: block;
   width: 100%;
   height: 2px;
-  background: var(--text-display);
+  background: #f8faff;
 }
 
 .wordblue-hero__main {
   display: grid;
   align-items: center;
   justify-items: center;
-  gap: clamp(2rem, 5vw, 4rem);
-  padding-top: clamp(3.5rem, 12vh, 7rem);
+  min-height: 0;
+  padding-top: clamp(0.5rem, 2vh, 1.5rem);
   text-align: center;
 }
 
@@ -1165,11 +1166,27 @@ body {
   position: relative;
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: stretch;
   justify-content: center;
   width: 100%;
-  min-height: clamp(12rem, 34vh, 22rem);
+  height: 100%;
+  min-height: clamp(16rem, 48vh, 34rem);
   text-align: center;
+}
+
+.synglyph-dot-title {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: inherit;
+  touch-action: manipulation;
+  cursor: crosshair;
+}
+
+.synglyph-dot-title__canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
 }
 
 .wordblue-hero__ghost {

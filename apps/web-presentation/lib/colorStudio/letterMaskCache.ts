@@ -30,12 +30,18 @@ export async function prewarmLetterMasksAsync(): Promise<void> {
   }
 }
 
+export type LetterMaskWeight = "default" | "heavy";
+
 /** Reuse glyph masks across all letter cards (A–Z built once per session). */
-export function getLetterMask(letter: string): MaskPayload | null {
+export function getLetterMask(
+  letter: string,
+  weight: LetterMaskWeight = "default",
+): MaskPayload | null {
   if (typeof document === "undefined") return null;
   const char =
     letter && letter.trim().length > 0 ? letter.trim().slice(0, 1).toUpperCase() : "?";
-  const hit = cache.get(char);
+  const cacheKey = weight === "default" ? char : `${char}:${weight}`;
+  const hit = cache.get(cacheKey);
   if (hit) return hit;
 
   const w = 256;
@@ -49,9 +55,10 @@ export function getLetterMask(letter: string): MaskPayload | null {
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
 
+  const heavy = weight === "heavy";
   const stacks: string[] = [
-    `700 ${fs}px ui-serif, "Times New Roman", Georgia, serif`,
-    `bold ${fs}px system-ui, -apple-system, "Segoe UI", sans-serif`,
+    `${heavy ? 900 : 700} ${fs}px ui-serif, "Times New Roman", Georgia, serif`,
+    `${heavy ? 900 : "bold"} ${fs}px system-ui, -apple-system, "Segoe UI", sans-serif`,
   ];
 
   let data: Uint8ClampedArray | null = null;
@@ -61,6 +68,13 @@ export function getLetterMask(letter: string): MaskPayload | null {
     ctx.fillStyle = "#fff";
     ctx.font = font;
     ctx.fillText(char, w / 2, h / 2);
+    if (heavy) {
+      ctx.lineJoin = "round";
+      ctx.miterLimit = 2;
+      ctx.lineWidth = Math.max(8, fs * 0.055);
+      ctx.strokeStyle = "#fff";
+      ctx.strokeText(char, w / 2, h / 2);
+    }
     const sample = ctx.getImageData(0, 0, w, h).data;
     if (maskHasLetterInk(sample)) {
       data = sample;
@@ -70,8 +84,9 @@ export function getLetterMask(letter: string): MaskPayload | null {
   }
 
   if (!data) return null;
+  if (!maskHasLetterInk(data)) return null;
   const payload: MaskPayload = { w, h, data };
-  cache.set(char, payload);
+  cache.set(cacheKey, payload);
   return payload;
 }
 

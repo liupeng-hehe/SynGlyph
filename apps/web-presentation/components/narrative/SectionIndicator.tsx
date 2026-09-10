@@ -53,6 +53,8 @@ export function SectionIndicator({ items }: Props) {
   ]);
   const isLightNav = lightNavIds.has(activeId);
 
+  if (activeId === "opening") return null;
+
   return (
     <aside className={`section-indicator${isLightNav ? " section-indicator--on-dark" : ""}`} aria-label="Section navigation">
       <ol className="section-indicator__list m-0 list-none p-0">
