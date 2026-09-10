@@ -8,15 +8,21 @@ import {
   useRef,
   useState,
   type CSSProperties,
+  type PointerEvent as ReactPointerEvent,
 } from "react";
 
 import { useSmoothScroll } from "./SmoothScrollProvider";
-
-/** Fixed arc half-width (slots −2 … +2). */
-const VISIBLE_SPAN = 2;
+import {
+  circularBend,
+  measureCircularGalleryLayout,
+  shortestRelative,
+  worldToCss,
+  type CircularGalleryLayout,
+} from "@/lib/circularGalleryMath";
 
 const SCROLL_VH_PER_ITEM = 110;
-const PROGRESS_LERP = 0.11;
+const PROGRESS_LERP = 0.055;
+const DRAG_THRESHOLD_PX = 8;
 
 export type ArcArchiveItem = {
   id: string;
@@ -32,19 +38,7 @@ export type ArcArchiveItem = {
   };
 };
 
-type ArcLayout = {
-  radius: number;
-  stepDeg: number;
-  sag: number;
-  posterWidth: number;
-};
-
-const DEFAULT_ARC: ArcLayout = {
-  radius: 520,
-  stepDeg: 16,
-  sag: 188,
-  posterWidth: 248,
-};
+const DEFAULT_LAYOUT: CircularGalleryLayout = measureCircularGalleryLayout(1280, 640);
 
 type Props = {
   items: ArcArchiveItem[];
@@ -63,45 +57,6 @@ function lerp(a: number, b: number, t: number): number {
   return a + (b - a) * t;
 }
 
-function measureArcLayout(ringWidth: number): ArcLayout {
-  const inner = Math.max(ringWidth, 320);
-  const gap = inner * 0.012;
-  const posterWidth = ((inner - gap * 4) / 5) * 0.96;
-  const stepDeg = 16;
-  const maxRad = (VISIBLE_SPAN * stepDeg * Math.PI) / 180;
-  const outerX = inner / 2 - posterWidth / 2 - 2;
-  const radius = Math.max(200, outerX / Math.sin(maxRad));
-  const sag = radius * 0.36;
-
-  return { radius, stepDeg, sag, posterWidth };
-}
-
-function opacityForDistance(abs: number): number {
-  if (abs <= 0.2) return 1;
-  if (abs <= 1.2) return 0.5;
-  return 0.25;
-}
-
-function arcTransform(relativeIndex: number, arc: ArcLayout): CSSProperties {
-  const abs = Math.abs(relativeIndex);
-  const angleDeg = relativeIndex * arc.stepDeg;
-  const rad = (angleDeg * Math.PI) / 180;
-
-  const x = Math.sin(rad) * arc.radius;
-  const uplift = clamp(1 - abs * 1.6, 0, 1) * 14;
-  const y = (1 - Math.cos(rad)) * arc.sag - uplift;
-  const rotate = angleDeg * 0.92;
-  const scale = clamp(1.04 - abs * 0.025, 0.92, 1.04);
-  const opacity = opacityForDistance(abs);
-
-  return {
-    transform: `translate(calc(-50% + ${x.toFixed(2)}px), ${y.toFixed(2)}px) rotate(${rotate.toFixed(3)}deg) scale(${scale.toFixed(4)})`,
-    transformOrigin: "50% 88%",
-    opacity,
-    zIndex: Math.round(120 - abs * 10),
-  };
-}
-
 export function ArcArchiveFloor({
   items,
   sectionId,
@@ -115,23 +70,42 @@ export function ArcArchiveFloor({
   const targetOffsetRef = useRef(0);
   const displayOffsetRef = useRef(0);
   const progressAnimRef = useRef(0);
+  const dragRef = useRef<{
+    pointerId: number;
+    startX: number;
+    startOffset: number;
+    dragging: boolean;
+  } | null>(null);
+  const suppressClickRef = useRef(false);
 
   const [displayOffset, setDisplayOffset] = useState(0);
-  const [arcLayout, setArcLayout] = useState<ArcLayout>(DEFAULT_ARC);
+  const [layout, setLayout] = useState<CircularGalleryLayout>(DEFAULT_LAYOUT);
   const smoothScroll = useSmoothScroll();
 
   const total = items.length;
   const maxOffset = Math.max(total - 1, 0);
   const activeIndex = clamp(Math.round(displayOffset), 0, maxOffset);
   const active = items[activeIndex] ?? items[0];
+  const posterPx = (layout.plane / layout.viewportW) * layout.screenW;
 
-  const measureArc = useCallback(() => {
+  const measureLayout = useCallback(() => {
     const ring = ringRef.current;
     if (!ring) return;
-    const { width } = ring.getBoundingClientRect();
-    if (width <= 0) return;
-    setArcLayout(measureArcLayout(width));
+    const { width, height } = ring.getBoundingClientRect();
+    if (width <= 0 || height <= 0) return;
+    setLayout(measureCircularGalleryLayout(width, height));
   }, []);
+
+  const scrollOffsetToPageY = useCallback(
+    (offset: number) => {
+      const track = trackRef.current;
+      if (!track) return window.scrollY;
+      const scrollable = track.offsetHeight - window.innerHeight;
+      const progress = maxOffset <= 0 ? 0 : clamp(offset, 0, maxOffset) / maxOffset;
+      return window.scrollY + track.getBoundingClientRect().top + progress * Math.max(scrollable, 0);
+    },
+    [maxOffset],
+  );
 
   const updateFromScroll = useCallback(() => {
     const track = trackRef.current;
@@ -146,8 +120,7 @@ export function ArcArchiveFloor({
     }
 
     const scrolled = clamp(-rect.top, 0, scrollable);
-    const progress = scrolled / scrollable;
-    targetOffsetRef.current = progress * maxOffset;
+    targetOffsetRef.current = (scrolled / scrollable) * maxOffset;
   }, [maxOffset]);
 
   const ensureProgressAnim = useCallback(() => {
@@ -174,35 +147,73 @@ export function ArcArchiveFloor({
 
   const goTo = useCallback(
     (index: number) => {
-      const track = trackRef.current;
-      if (!track) return;
-
       const clamped = clamp(index, 0, maxOffset);
-      const scrollable = track.offsetHeight - window.innerHeight;
-      const progress = maxOffset <= 0 ? 0 : clamped / maxOffset;
-      const targetScroll =
-        window.scrollY + track.getBoundingClientRect().top + progress * scrollable;
-
-      smoothScroll?.scrollToOffset(targetScroll);
+      smoothScroll?.scrollToOffset(scrollOffsetToPageY(clamped));
     },
-    [maxOffset, smoothScroll],
+    [maxOffset, scrollOffsetToPageY, smoothScroll],
+  );
+
+  const onPointerDown = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
+    if (event.button !== 0) return;
+    dragRef.current = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startOffset: displayOffsetRef.current,
+      dragging: false,
+    };
+  }, []);
+
+  const onPointerMove = useCallback(
+    (event: ReactPointerEvent<HTMLDivElement>) => {
+      const drag = dragRef.current;
+      if (!drag || drag.pointerId !== event.pointerId) return;
+
+      const deltaX = drag.startX - event.clientX;
+      if (!drag.dragging && Math.abs(deltaX) < DRAG_THRESHOLD_PX) return;
+
+      if (!drag.dragging) {
+        drag.dragging = true;
+        event.currentTarget.setPointerCapture(event.pointerId);
+      }
+
+      const next = clamp(drag.startOffset + deltaX / Math.max(posterPx, 1), 0, maxOffset);
+      targetOffsetRef.current = next;
+      ensureProgressAnim();
+      smoothScroll?.scrollToOffset(scrollOffsetToPageY(next), { immediate: true });
+    },
+    [ensureProgressAnim, maxOffset, posterPx, scrollOffsetToPageY, smoothScroll],
+  );
+
+  const endDrag = useCallback(
+    (event: ReactPointerEvent<HTMLDivElement>) => {
+      const drag = dragRef.current;
+      if (!drag || drag.pointerId !== event.pointerId) return;
+
+      const didDrag = drag.dragging;
+      dragRef.current = null;
+      if (!didDrag) return;
+
+      suppressClickRef.current = true;
+      goTo(Math.round(targetOffsetRef.current));
+    },
+    [goTo],
   );
 
   useLayoutEffect(() => {
-    measureArc();
+    measureLayout();
     const ring = ringRef.current;
     const observer =
       ring && typeof ResizeObserver !== "undefined"
-        ? new ResizeObserver(measureArc)
+        ? new ResizeObserver(measureLayout)
         : null;
     if (ring && observer) observer.observe(ring);
-    window.addEventListener("resize", measureArc);
+    window.addEventListener("resize", measureLayout);
 
     return () => {
       observer?.disconnect();
-      window.removeEventListener("resize", measureArc);
+      window.removeEventListener("resize", measureLayout);
     };
-  }, [measureArc]);
+  }, [measureLayout]);
 
   useEffect(() => {
     updateFromScroll();
@@ -210,6 +221,7 @@ export function ArcArchiveFloor({
     setDisplayOffset(targetOffsetRef.current);
 
     const unsubscribe = smoothScroll?.subscribeScroll(() => {
+      if (dragRef.current?.dragging) return;
       updateFromScroll();
       ensureProgressAnim();
     });
@@ -260,22 +272,40 @@ export function ArcArchiveFloor({
                 Artists on Synesthetes
               </p>
             ) : null}
-            <div className="wordblue-archive__carousel" role="tablist" aria-label={ariaLabel}>
+            <div
+              className="wordblue-archive__carousel"
+              role="tablist"
+              aria-label={ariaLabel}
+              onPointerDown={onPointerDown}
+              onPointerMove={onPointerMove}
+              onPointerUp={endDrag}
+              onPointerCancel={endDrag}
+            >
               <div
                 ref={ringRef}
                 className="wordblue-archive__ring"
                 style={
                   {
-                    "--poster-w": `${arcLayout.posterWidth}px`,
+                    "--poster-w": `${posterPx}px`,
                   } as CSSProperties
                 }
               >
                 {items.map((item, index) => {
-                  const relative = index - displayOffset;
-                  if (Math.abs(relative) > VISIBLE_SPAN + 0.02) return null;
+                  const relative = shortestRelative(index, displayOffset, total);
+                  const abs = Math.abs(relative);
+                  if (abs > 2.45) return null;
 
+                  const worldX = relative * layout.stride;
+                  const { y, rotation } = circularBend(
+                    worldX,
+                    layout.viewportW / 2,
+                    layout.bend,
+                  );
+                  const css = worldToCss(worldX, y, layout);
                   const isActive = index === activeIndex;
                   const fit = item.image.fit ?? "cover";
+                  const rotDeg = (-rotation * 180) / Math.PI;
+                  const edgeFade = abs > 2.05 ? clamp(1 - (abs - 2.05) / 0.4, 0, 1) : 1;
 
                   return (
                     <button
@@ -285,15 +315,25 @@ export function ArcArchiveFloor({
                       aria-selected={isActive}
                       aria-label={item.floorTitle}
                       className={`wordblue-archive__poster${isActive ? " wordblue-archive__poster--active" : ""}`}
-                      style={arcTransform(relative, arcLayout)}
-                      onClick={() => goTo(index)}
+                      style={{
+                        transform: `translate(calc(-50% + ${css.x.toFixed(2)}px), calc(var(--poster-w) * -0.5 + ${css.y.toFixed(2)}px)) rotate(${rotDeg.toFixed(3)}deg)`,
+                        zIndex: Math.round(40 - abs * 8),
+                        opacity: edgeFade,
+                      }}
+                      onClick={() => {
+                        if (suppressClickRef.current) {
+                          suppressClickRef.current = false;
+                          return;
+                        }
+                        goTo(index);
+                      }}
                     >
                       <span className="wordblue-archive__poster-frame">
                         <Image
                           src={item.image.src}
                           alt={item.image.alt}
                           fill
-                          sizes="(max-width: 768px) 20vw, 18vw"
+                          sizes="(max-width: 768px) 28vw, 22vw"
                           className={`wordblue-archive__poster-image wordblue-archive__poster-image--${fit}`}
                           draggable={false}
                           priority={index <= 2}

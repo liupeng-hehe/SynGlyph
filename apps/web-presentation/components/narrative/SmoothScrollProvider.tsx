@@ -13,7 +13,7 @@ import {
 
 type ScrollApi = {
   scrollTo: (target: string | HTMLElement, options?: { offset?: number }) => void;
-  scrollToOffset: (top: number) => void;
+  scrollToOffset: (top: number, options?: { immediate?: boolean; duration?: number }) => void;
   subscribeScroll: (callback: () => void) => () => void;
 };
 
@@ -180,17 +180,21 @@ export function SmoothScrollProvider({ children }: Props) {
     [],
   );
 
-  const scrollToOffset = useCallback((top: number) => {
+  const scrollToOffset = useCallback((
+    top: number,
+    options?: { immediate?: boolean; duration?: number },
+  ) => {
     snapLockRef.current = true;
     if (lenisRef.current) {
       lenisRef.current.scrollTo(top, {
-        duration: 1.05,
+        immediate: options?.immediate,
+        duration: options?.immediate ? 0 : (options?.duration ?? 1.05),
         onComplete: () => {
           snapLockRef.current = false;
         },
       });
     } else {
-      window.scrollTo({ top, behavior: "smooth" });
+      window.scrollTo({ top, behavior: options?.immediate ? "auto" : "smooth" });
       snapLockRef.current = false;
     }
   }, []);

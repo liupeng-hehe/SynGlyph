@@ -6929,6 +6929,12 @@ body {
   min-height: clamp(24rem, 56vh, 38rem);
   user-select: none;
   overflow: visible;
+  touch-action: pan-y;
+  cursor: grab;
+}
+
+.wordblue-archive__carousel:active {
+  cursor: grabbing;
 }
 
 .wordblue-archive--synesthetes .wordblue-archive__carousel::before,
@@ -6966,7 +6972,7 @@ body {
 .wordblue-archive__poster {
   position: absolute;
   left: 50%;
-  bottom: clamp(2rem, 10%, 3rem);
+  top: 50%;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -6978,7 +6984,8 @@ body {
   background: transparent;
   color: inherit;
   cursor: pointer;
-  will-change: transform, opacity;
+  transform-origin: 50% var(--poster-w);
+  will-change: transform;
 }
 
 .wordblue-archive__poster-frame {
@@ -7029,7 +7036,7 @@ body {
   top: calc(100% - 0.15rem);
   left: 50%;
   width: 1px;
-  height: clamp(2.4rem, 6vh, 3.6rem);
+  height: clamp(3.2rem, 11vh, 6.5rem);
   background: rgb(245 247 251 / 0.92);
   transform: translateX(-50%);
   pointer-events: none;
