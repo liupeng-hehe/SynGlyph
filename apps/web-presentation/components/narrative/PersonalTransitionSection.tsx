@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 
 import type { Chapter } from "@/content/synesthesiaContent";
 
+import { PersonalMineReading } from "./PersonalMineReading";
 import { SourcesDrawer } from "./SourcesDrawer";
 
 type Props = {
@@ -37,7 +38,7 @@ export function PersonalTransitionSection({ chapter }: Props) {
       ref={sectionRef}
       id={chapter.id}
       data-snap-section
-      className="personal-mine narrative-chapter narrative-chapter--plain min-h-[100svh] scroll-mt-0"
+      className={`personal-mine narrative-chapter narrative-chapter--plain min-h-[100svh] scroll-mt-0${switchOn ? " personal-mine--synesthetic" : ""}`}
       aria-labelledby={`${chapter.id}-title`}
     >
       <div className="personal-mine__layout">
@@ -51,11 +52,7 @@ export function PersonalTransitionSection({ chapter }: Props) {
             <p className="narrative-subtitle personal-mine__subtitle mt-3 font-body">{chapter.subtitle}</p>
           ) : null}
           <div className="personal-mine__paragraphs">
-            {chapter.body.map((paragraph) => (
-              <p key={paragraph.slice(0, 48)} className="narrative-body personal-mine__body m-0 font-body">
-                {paragraph}
-              </p>
-            ))}
+            <PersonalMineReading paragraphs={chapter.body} active={switchOn} />
           </div>
           {chapter.sourceKeys.length > 0 ? (
             <div className="personal-mine__sources">
@@ -73,7 +70,9 @@ export function PersonalTransitionSection({ chapter }: Props) {
           <label className="personal-mine__switch">
             <input
               type="checkbox"
+              role="switch"
               checked={switchOn}
+              aria-label="Read through my eyes"
               onChange={(event) => setSwitchOn(event.target.checked)}
             />
             <span className="personal-mine__switch-track" aria-hidden="true">
