@@ -47,6 +47,7 @@ export function SectionIndicator({ items }: Props) {
   }, [items]);
 
   const lightNavIds = new Set([
+    "what-is-synesthesia",
     "synesthesia-sparks",
     "artworks-transition",
     "synesthetes",

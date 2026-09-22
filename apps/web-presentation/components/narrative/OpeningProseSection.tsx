@@ -17,6 +17,12 @@ const GOO_AMP = 20;
 const GOO_OFF = -8;
 const BIRTH_Y = 0.55;
 const PROGRESS_LERP = 0.13;
+/** Blob arrives quickly, then spends most of the line resolving into type. */
+const ARRIVE_END = 0.2;
+const RESOLVE_START = 0.36;
+/** Last visual fifth (80–100%) occupies more of the line's scroll. */
+const TAIL_VISUAL = 0.8;
+const TAIL_SCROLL = 0.62;
 
 function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
@@ -28,6 +34,13 @@ function lerp(a: number, b: number, t: number): number {
 
 function easeOut(t: number): number {
   return 1 - (1 - t) ** 3;
+}
+
+function stretchTail(frac: number): number {
+  if (frac < TAIL_SCROLL) {
+    return (frac / TAIL_SCROLL) * TAIL_VISUAL;
+  }
+  return TAIL_VISUAL + ((frac - TAIL_SCROLL) / (1 - TAIL_SCROLL)) * (1 - TAIL_VISUAL);
 }
 
 function smoothstep(edge0: number, edge1: number, x: number): number {
@@ -58,6 +71,7 @@ export function OpeningProseSection({ chapter }: Props) {
   const targetProgressRef = useRef(0);
   const displayProgressRef = useRef(0);
   const progressAnimRef = useRef(0);
+  const revealedRef = useRef<boolean[]>([]);
   const smoothScroll = useSmoothScroll();
 
   const applyFrame = useCallback(
@@ -102,38 +116,37 @@ export function OpeningProseSection({ chapter }: Props) {
         node.style.opacity = "1";
         node.setAttribute("aria-hidden", "false");
 
-        if (i < active) {
+        if (i < active || (i === active && frac >= 0.995)) {
+          revealedRef.current[i] = true;
+        }
+
+        if (revealedRef.current[i]) {
           node.style.filter = "none";
           blur?.setAttribute("stdDeviation", "0");
           matrix?.setAttribute("values", matrixValues(1, 0));
           continue;
         }
 
-        // Hard-edged metaball, not a fog copy of the same letters:
-        // 1) words arrive already melted (counters filled, stems fused)
-        // 2) hold while the silhouette splits back into glyphs
-        // 3) only then drop the contrast so counters punch open
+        const visual = stretchTail(frac);
+
+        // 1) melted silhouette arrives
+        // 2) hold briefly as a graphic
+        // 3) spend most of the line opening back into letters
         let std: number;
-        if (frac < 0.42) {
-          std = lerp(BLUR_START, BLUR_HOLD, easeOut(frac / 0.42));
-        } else if (frac < 0.72) {
+        if (visual < ARRIVE_END) {
+          std = lerp(BLUR_START, BLUR_HOLD, easeOut(visual / ARRIVE_END));
+        } else if (visual < RESOLVE_START) {
           std = BLUR_HOLD;
         } else {
-          std = lerp(BLUR_HOLD, 0, easeOut((frac - 0.72) / 0.28));
+          std = lerp(BLUR_HOLD, 0, easeOut((visual - RESOLVE_START) / (1 - RESOLVE_START)));
         }
-        const counters = frac < 0.72 ? 0 : easeOut((frac - 0.72) / 0.28);
+        const counters = visual < RESOLVE_START ? 0 : easeOut((visual - RESOLVE_START) / (1 - RESOLVE_START));
         const amp = lerp(GOO_AMP, 1, counters);
         const off = lerp(GOO_OFF, 0, counters);
 
-        if (frac >= 0.995) {
-          node.style.filter = "none";
-          blur?.setAttribute("stdDeviation", "0");
-          matrix?.setAttribute("values", matrixValues(1, 0));
-        } else {
-          blur?.setAttribute("stdDeviation", std.toFixed(2));
-          matrix?.setAttribute("values", matrixValues(amp, off));
-          node.style.filter = `url(#prose-goo-${i})`;
-        }
+        blur?.setAttribute("stdDeviation", std.toFixed(2));
+        matrix?.setAttribute("values", matrixValues(amp, off));
+        node.style.filter = `url(#prose-goo-${i})`;
       }
     },
     [lines.length],
@@ -178,6 +191,12 @@ export function OpeningProseSection({ chapter }: Props) {
     media.addEventListener("change", sync);
     return () => media.removeEventListener("change", sync);
   }, []);
+
+  useEffect(() => {
+    if (revealedRef.current.length !== lines.length) {
+      revealedRef.current = Array.from({ length: lines.length }, (_, i) => revealedRef.current[i] ?? false);
+    }
+  }, [lines.length]);
 
   useEffect(() => {
     if (reduceMotion) return;
@@ -264,7 +283,7 @@ export function OpeningProseSection({ chapter }: Props) {
                   ref={(node: HTMLHeadingElement | HTMLParagraphElement | null) => {
                     lineRefs.current[index] = node;
                   }}
-                  className="opening-prose__line m-0 font-display"
+                  className="opening-prose__line m-0 font-prose"
                 >
                   {line}
                 </Tag>

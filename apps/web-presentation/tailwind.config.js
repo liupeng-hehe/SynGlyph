@@ -25,6 +25,14 @@ module.exports = {
       fontFamily: {
         display: ["var(--font-display)", "Georgia", "serif"],
         body: ["var(--font-body)", "system-ui", "sans-serif"],
+        prose: [
+          "Times Now Bold",
+          "Times Now",
+          "var(--font-prose)",
+          "Times New Roman",
+          "Times",
+          "serif",
+        ],
       },
     },
   },

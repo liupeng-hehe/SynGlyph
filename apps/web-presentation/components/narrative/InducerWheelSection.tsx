@@ -1,13 +1,10 @@
 "use client";
 
 import Image from "next/image";
-import { useCallback, useRef, useState, type KeyboardEvent } from "react";
+import { useCallback, useRef, useState, type CSSProperties, type KeyboardEvent } from "react";
 
 import type { Chapter } from "@/content/synesthesiaContent";
-import {
-  inducerPairImages,
-  type InducerPairImage,
-} from "@/content/inducerPairImages";
+import { inducerPairImages } from "@/content/inducerPairImages";
 
 import { useSnapSectionWheelSequence } from "./useSnapSectionWheelSequence";
 
@@ -15,19 +12,40 @@ type Props = {
   chapter: Chapter;
 };
 
-function titleFor(item: InducerPairImage): string {
+function titleFor(item: (typeof inducerPairImages)[number]): string {
   return `${item.colorLabel} / ${item.emotionLabel}`;
 }
 
-function isLightHex(hex: string): boolean {
-  const value = hex.replace("#", "").padStart(6, "0");
-  const r = parseInt(value.slice(0, 2), 16) / 255;
-  const g = parseInt(value.slice(2, 4), 16) / 255;
-  const b = parseInt(value.slice(4, 6), 16) / 255;
-  const toLin = (channel: number) =>
-    channel <= 0.03928 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4;
-  return 0.2126 * toLin(r) + 0.7152 * toLin(g) + 0.0722 * toLin(b) > 0.72;
+function hexLuminance(hex: string): number {
+  const raw = hex.replace("#", "");
+  if (raw.length !== 6) return 0;
+  const channel = (start: number) => {
+    const value = Number.parseInt(raw.slice(start, start + 2), 16) / 255;
+    return value <= 0.03928 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
+  };
+  return 0.2126 * channel(0) + 0.7152 * channel(2) + 0.0722 * channel(4);
 }
+
+function mixHex(hex: string, onto: string, amount: number): string {
+  const parse = (value: string) => {
+    const raw = value.replace("#", "");
+    return [0, 2, 4].map((start) => Number.parseInt(raw.slice(start, start + 2), 16));
+  };
+  const from = parse(hex);
+  const to = parse(onto);
+  const mixed = from.map((channel, index) =>
+    Math.round(channel + ((to[index] ?? 0) - channel) * amount),
+  );
+  return `#${mixed.map((channel) => channel.toString(16).padStart(2, "0")).join("")}`;
+}
+
+/** Dark HEX stays the same hue but readable on the black stage. */
+function copyInkOnBlack(hex: string): string {
+  return hexLuminance(hex) < 0.28 ? mixHex(hex, "#ffffff", 0.42) : hex;
+}
+
+/** Layout placeholder until the new color photographs arrive. */
+const LAYOUT_IMAGE = inducerPairImages[0]?.src ?? "/collab/page2/asset-1.png";
 
 export function InducerWheelSection({ chapter }: Props) {
   const rootRef = useRef<HTMLDivElement>(null);
@@ -35,6 +53,7 @@ export function InducerWheelSection({ chapter }: Props) {
 
   const maxIndex = inducerPairImages.length - 1;
   const pairImage = inducerPairImages[activeIndex] ?? inducerPairImages[0];
+  const step = 360 / Math.max(inducerPairImages.length, 1);
 
   const setPairIndex = useCallback(
     (index: number) => {
@@ -48,6 +67,7 @@ export function InducerWheelSection({ chapter }: Props) {
     itemCount: inducerPairImages.length,
     activeIndex,
     onIndexChange: setPairIndex,
+    stepMs: 900,
   });
 
   const handleKey = (event: KeyboardEvent<HTMLDivElement>) => {
@@ -73,73 +93,72 @@ export function InducerWheelSection({ chapter }: Props) {
     <section
       id={chapter.id}
       data-snap-section
-      className="narrative-chapter narrative-chapter--pair-wheel min-h-[100svh] scroll-mt-0"
+      className="narrative-chapter narrative-chapter--filter-disc min-h-[100svh] scroll-mt-0"
       aria-labelledby={`${chapter.id}-title`}
     >
       <div
         ref={rootRef}
-        className="pair-wheel pair-wheel--filmstrip"
+        className="filter-disc"
         data-wheel-sequence
         data-wheel-at={activeIndex <= 0 ? "start" : activeIndex >= maxIndex ? "end" : "mid"}
+        role="listbox"
+        aria-label="Color pairs"
+        tabIndex={0}
+        onKeyDown={handleKey}
+        style={
+          {
+            "--disc-rot": `${(-activeIndex * step).toFixed(3)}deg`,
+            "--pair-hex": pairImage.hex,
+            "--pair-ink": copyInkOnBlack(pairImage.hex),
+          } as CSSProperties
+        }
       >
-        <header className="pair-wheel__header">
-          <p className="pair-wheel__eyebrow m-0 font-body">{chapter.eyebrow}</p>
-          <h3 id={`${chapter.id}-title`} className="pair-wheel__heading m-0 font-body">
-            Inducer / Concurrent
+        <div className="filter-disc__aperture">
+          <div className="filter-disc__rotor">
+            <div className="filter-disc__plate">
+              <Image
+                src={LAYOUT_IMAGE}
+                alt=""
+                fill
+                sizes="100vh"
+                className="filter-disc__image"
+                priority
+                draggable={false}
+              />
+              <span className="filter-disc__gel" aria-hidden="true" />
+            </div>
+            {inducerPairImages.map((item, index) => {
+              const active = index === activeIndex;
+              return (
+                <button
+                  key={`${item.hex}-${item.emotionLabel}`}
+                  type="button"
+                  role="option"
+                  aria-selected={active}
+                  aria-label={titleFor(item)}
+                  className={`filter-disc__tick${active ? " filter-disc__tick--active" : ""}`}
+                  style={
+                    {
+                      "--tick-a": `${(index * step).toFixed(3)}deg`,
+                      backgroundColor: item.hex,
+                    } as CSSProperties
+                  }
+                  onClick={() => setPairIndex(index)}
+                />
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="filter-disc__copy">
+          <h3 id={`${chapter.id}-title`} className="filter-disc__title m-0 font-prose">
+            {titleFor(pairImage)}
           </h3>
-          <p className="pair-wheel__sub m-0 font-body">
-            Select a pairing — or scroll — to switch the color
-          </p>
-        </header>
-
-        <div
-          className="pair-filmstrip"
-          role="listbox"
-          aria-label="Color pairs"
-          tabIndex={0}
-          onKeyDown={handleKey}
-        >
-          {inducerPairImages.map((item, index) => {
-            const active = index === activeIndex;
-            const distant = Math.abs(index - activeIndex) > 2;
-            const light = isLightHex(item.hex);
-            const ink = light ? "#5c6168" : item.hex;
-
-            return (
-              <button
-                key={`${item.hex}-${item.emotionLabel}`}
-                type="button"
-                role="option"
-                aria-selected={active}
-                aria-label={titleFor(item)}
-                className={`pair-filmstrip__strip${active ? " pair-filmstrip__strip--active" : ""}${distant ? " pair-filmstrip__strip--distant" : ""}`}
-                onClick={() => setPairIndex(index)}
-              >
-                <span className="pair-filmstrip__media">
-                  <Image
-                    src={item.src}
-                    alt={item.alt}
-                    fill
-                    sizes="(max-width: 860px) 52vw, 440px"
-                    className="pair-filmstrip__image"
-                    priority={index === 0}
-                    draggable={false}
-                  />
-                </span>
-                {active ? (
-                  <span className="pair-filmstrip__copy font-body" style={{ color: ink }}>
-                    <span className="pair-filmstrip__title">{titleFor(item)}</span>
-                    {item.lines.map((line) => (
-                      <span key={line} className="pair-filmstrip__line">
-                        {line}
-                      </span>
-                    ))}
-                    <span className="pair-filmstrip__hex">{item.hex}</span>
-                  </span>
-                ) : null}
-              </button>
-            );
-          })}
+          {pairImage.lines.map((line) => (
+            <p key={line} className="filter-disc__line m-0 font-body">
+              {line}
+            </p>
+          ))}
         </div>
       </div>
     </section>

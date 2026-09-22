@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { DM_Sans, Fraunces } from "next/font/google";
+import { DM_Sans, Fraunces, Newsreader } from "next/font/google";
 
 import { ExhibitionNav } from "@/components/ui/ExhibitionNav";
 
@@ -17,6 +17,13 @@ const body = DM_Sans({
   weight: ["400", "500", "600", "700"],
 });
 
+/** Closest licensed Times-cut to JHA Times Now (page 2 prose). */
+const prose = Newsreader({
+  subsets: ["latin"],
+  variable: "--font-prose",
+  weight: ["300", "700"],
+});
+
 export const metadata: Metadata = {
   title: "When Words Turn Blue",
   description:
@@ -31,7 +38,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${display.variable} ${body.variable} min-h-screen font-body antialiased`}
+        className={`${display.variable} ${body.variable} ${prose.variable} min-h-screen font-body antialiased`}
         style={{ backgroundColor: "#fffcf7", color: "#002fa7" }}
       >
         <ExhibitionNav />

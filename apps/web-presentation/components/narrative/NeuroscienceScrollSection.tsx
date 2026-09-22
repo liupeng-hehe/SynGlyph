@@ -159,12 +159,27 @@ const DARK_LINE_FROM_TOP = 1 / 3;
 
 const LIGHT_LINE_HYSTERESIS_PX = 16;
 
+const PORTRAIT_LANE = "(max-width: 699px) and (orientation: portrait)";
+const HORIZONTAL_ENTRY_X = -0.28;
+
 /** Lead moves from lower-right toward upper-left as progress increases. */
 function leadPosition(progress: number, chain: ChainSpacing, travelSteps: number) {
   const { stepX, stepY } = chainStep(chain);
   return {
     x: CHAIN_LEFT_INSET + progress * stepX * travelSteps * HORIZONTAL_PULL,
     y: ENTRY_BELOW * (1 - progress) - progress * stepY * travelSteps,
+  };
+}
+
+function horizontalStepX(chain: ChainSpacing) {
+  return chain.dx * 1.12 + 0.08;
+}
+
+function slidePositionHorizontal(progress: number, index: number, chain: ChainSpacing, travelSteps: number) {
+  const stepX = horizontalStepX(chain);
+  return {
+    x: HORIZONTAL_ENTRY_X + progress * stepX * travelSteps - index * stepX,
+    y: 0,
   };
 }
 
@@ -216,6 +231,58 @@ function figureIsPastDarkLine(
   const yFromTop = figureYFromTop(el, viewportEl);
   if (yFromTop == null) return false;
   return yFromTop <= DARK_LINE_FROM_TOP;
+}
+
+function latestSlideNearestCenter(
+  figures: Array<HTMLElement | null>,
+  previousIndex: number,
+  viewportEl?: HTMLElement | null,
+): number {
+  const view = viewportEl?.getBoundingClientRect();
+  const midX = view ? (view.left + view.right) / 2 : window.innerWidth / 2;
+  const hysteresis = 28;
+  let latest = -1;
+  let best = Infinity;
+
+  for (let i = 0; i < figures.length; i += 1) {
+    const el = figures[i];
+    if (!el) continue;
+    const rect = el.getBoundingClientRect();
+    if (rect.width <= 0) continue;
+    const cx = rect.left + rect.width / 2;
+    const dist = Math.abs(cx - midX);
+    const threshold = i === previousIndex ? hysteresis : 0;
+    if (rect.right > (view?.left ?? 0) && rect.left < (view?.right ?? window.innerWidth) && dist < best + threshold) {
+      best = dist;
+      latest = i;
+    }
+  }
+
+  return latest;
+}
+
+function figureIsPastDarkLineHorizontal(
+  el: HTMLElement | null,
+  viewportEl?: HTMLElement | null,
+): boolean {
+  if (!el) return false;
+  const rect = el.getBoundingClientRect();
+  if (rect.width <= 0) return false;
+  const view = viewportEl?.getBoundingClientRect();
+  const left = view?.left ?? 0;
+  const width = view?.width ?? window.innerWidth;
+  return rect.left + rect.width / 2 <= left + width * 0.28;
+}
+
+function figureLuminanceHorizontal(el: HTMLElement | null, viewportEl?: HTMLElement | null): number {
+  if (!el) return 0.52;
+  const rect = el.getBoundingClientRect();
+  if (rect.width <= 0) return 0.52;
+  const view = viewportEl?.getBoundingClientRect();
+  const midX = view ? (view.left + view.right) / 2 : window.innerWidth / 2;
+  const span = (view?.width ?? window.innerWidth) * 0.42;
+  const nx = clamp(Math.abs(rect.left + rect.width / 2 - midX) / span, 0, 1);
+  return 1 + (0.38 - 1) * nx;
 }
 
 function latestSlidePastLightLine(
@@ -336,12 +403,17 @@ function slideMotionStyle(
   captionIndex: number,
   leaveFade = 1,
   luminance = 0.52,
+  horizontal = false,
 ) {
   const progress = galleryProgress(globalProgress);
-  const raw = slidePosition(progress, index, chain, travelSteps);
+  const raw = horizontal
+    ? slidePositionHorizontal(progress, index, chain, travelSteps)
+    : slidePosition(progress, index, chain, travelSteps);
   const travel = progress * travelSteps;
-  const activeRaw = slidePositionAtTravel(progress, travel, chain, travelSteps);
-  const pull = layoutReady ? centerPullWeight(progress) : 0;
+  const activeRaw = horizontal
+    ? slidePositionHorizontal(progress, travel, chain, travelSteps)
+    : slidePositionAtTravel(progress, travel, chain, travelSteps);
+  const pull = !horizontal && layoutReady ? centerPullWeight(progress) : 0;
 
   const x = raw.x + pull * (focusCenter.x - activeRaw.x);
   const y = raw.y + pull * (focusCenter.y - activeRaw.y);
@@ -414,29 +486,47 @@ export function ScrollGallerySection({
   const slideCount = slides.length;
   const travelSteps = travelStepsFor(slideCount);
   const smoothScroll = useSmoothScroll();
+  const [portraitLane, setPortraitLane] = useState(false);
+
+  useEffect(() => {
+    const media = window.matchMedia(PORTRAIT_LANE);
+    const sync = () => setPortraitLane(media.matches);
+    sync();
+    media.addEventListener("change", sync);
+    return () => media.removeEventListener("change", sync);
+  }, []);
 
   const syncCaptionToLightLine = useCallback(() => {
     const viewport = stickyRef.current;
-    const next = latestSlidePastLightLine(
-      figureRefs.current,
-      captionIndexRef.current,
-      viewport,
-    );
+    const next = portraitLane
+      ? latestSlideNearestCenter(figureRefs.current, captionIndexRef.current, viewport)
+      : latestSlidePastLightLine(
+          figureRefs.current,
+          captionIndexRef.current,
+          viewport,
+        );
     captionIndexRef.current = next;
     setCaptionIndex((prev) => (prev === next ? prev : next));
 
     const captionDark =
-      next >= 0 && figureIsPastDarkLine(figureRefs.current[next], viewport);
+      next >= 0 &&
+      (portraitLane
+        ? figureIsPastDarkLineHorizontal(figureRefs.current[next], viewport)
+        : figureIsPastDarkLine(figureRefs.current[next], viewport));
     setCaptionHidden(next < 0 || captionDark);
     setLastImageDark(
-      figureIsPastDarkLine(figureRefs.current[slideCount - 1], viewport),
+      portraitLane
+        ? figureIsPastDarkLineHorizontal(figureRefs.current[slideCount - 1], viewport)
+        : figureIsPastDarkLine(figureRefs.current[slideCount - 1], viewport),
     );
-  }, [slideCount]);
+  }, [portraitLane, slideCount]);
 
   const syncFigureVisuals = useCallback(() => {
     const viewport = stickyRef.current;
     const nextFade = figureRefs.current.map((el) => figureLeaveFade(el, viewport));
-    const nextLuma = figureRefs.current.map((el) => figureLuminance(el, viewport));
+    const nextLuma = figureRefs.current.map((el) =>
+      portraitLane ? figureLuminanceHorizontal(el, viewport) : figureLuminance(el, viewport),
+    );
 
     setLeaveFade((prev) => {
       if (
@@ -457,7 +547,7 @@ export function ScrollGallerySection({
       }
       return nextLuma;
     });
-  }, []);
+  }, [portraitLane]);
 
   const ensureFocusCenterAnim = useCallback(() => {
     if (focusCenterAnimRef.current) return;
@@ -524,6 +614,7 @@ export function ScrollGallerySection({
     focusCenter,
     parallax,
     slideCount,
+    portraitLane,
   ]);
 
   useEffect(() => {
@@ -707,7 +798,7 @@ export function ScrollGallerySection({
       id={chapter.id}
       data-snap-section
       data-nav-theme="dark"
-      className={themeClass}
+      className={`${themeClass}${isSparks && portraitLane ? " neuro-scroll-section--portrait-lane" : ""}`}
       aria-labelledby={`${chapter.id}-title`}
     >
       <div
@@ -764,13 +855,14 @@ export function ScrollGallerySection({
                   captionIndex,
                   leaveFade[index] ?? 1,
                   luminance[index] ?? 0.52,
+                  isSparks && portraitLane,
                 )}
               >
                 <Image
                   src={slide.src}
                   alt={slide.alt}
                   fill
-                  sizes="(max-width: 960px) 78vw, 34vw"
+                  sizes="(max-width: 699px) and (orientation: portrait) 86vw, (max-width: 960px) 78vw, 34vw"
                   className={`neuro-scroll-section__image${loadedSlides[index] ? " neuro-scroll-section__image--ready" : ""}`}
                   priority={index === 0}
                   onLoad={() => markSlideLoaded(index)}
