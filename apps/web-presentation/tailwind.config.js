@@ -26,7 +26,8 @@ module.exports = {
         display: ["var(--font-display)", "Georgia", "serif"],
         body: ["var(--font-body)", "system-ui", "sans-serif"],
         prose: [
-          "Times Now Bold",
+          "TimesNow-SemiLight",
+          "Times Now SemiLight",
           "Times Now",
           "var(--font-prose)",
           "Times New Roman",

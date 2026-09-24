@@ -21,7 +21,7 @@ const body = DM_Sans({
 const prose = Newsreader({
   subsets: ["latin"],
   variable: "--font-prose",
-  weight: ["300", "700"],
+  weight: ["200", "300", "400"],
 });
 
 export const metadata: Metadata = {

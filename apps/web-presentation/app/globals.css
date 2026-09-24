@@ -2176,10 +2176,23 @@ body {
 
 /* --- Opening prose (screen 2): liquid line reveal --- */
 
+@font-face {
+  font-family: "TimesNow-SemiLight";
+  src:
+    local("Times Now SemiLight"),
+    local("TimesNow-SemiLight"),
+    local("Times Now"),
+    url("/fonts/TimesNowSemiLight.woff2") format("woff2");
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
 .opening-prose {
+  --prose-ink: #ea9dac;
   position: relative;
   background: var(--bg);
-  color: var(--ink);
+  color: var(--prose-ink);
 }
 
 .opening-prose__track {
@@ -2207,28 +2220,61 @@ body {
   padding: clamp(1.25rem, 5vw, 4.5rem);
 }
 
-.opening-prose__line {
-  font-family: "Times Now Bold", "Times Now", var(--font-prose), "Times New Roman", Times, serif;
-  font-size: clamp(1.65rem, 6.4vw, 4.75rem);
-  font-weight: 700;
-  line-height: 1.18;
-  letter-spacing: -0.018em;
-  width: min(100%, 22ch);
+.opening-prose__stage {
+  position: relative;
+  width: 100%;
+  height: 100%;
 }
 
-.opening-prose__stack {
+.opening-prose__para {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 1;
   display: flex;
   flex-direction: column;
-  gap: 0.28em;
-  will-change: transform;
+  align-items: center;
+  gap: 0.32em;
+  width: min(100%, 28ch);
+  font-family: var(--font-prose), "Times New Roman", Times, serif;
+  font-size: clamp(1.35rem, 4.2vw, 2.85rem);
+  font-weight: 300;
+  text-align: center;
+  transform: translate3d(-50%, -50%, 0);
+  backface-visibility: hidden;
+  contain: layout style;
+  pointer-events: none;
+  will-change: transform, opacity;
+}
+
+.opening-prose__para--times {
+  font-family: "TimesNow-SemiLight", "Times Now SemiLight", "Times Now", var(--font-prose), "Times New Roman", Times, serif;
 }
 
 .opening-prose__line {
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: 1.22;
+  letter-spacing: -0.012em;
+  width: 100%;
+  color: var(--prose-ink);
+  text-align: center;
   overflow: visible;
   opacity: 0;
-  padding: 0.06em 0.12em;
-  margin-inline: -0.12em;
-  transform-origin: left center;
+  padding: 0.04em 0.08em;
+  transform-origin: center;
+}
+
+.opening-prose__mine-word,
+.opening-prose__mine-letter {
+  font: inherit;
+  letter-spacing: inherit;
+}
+
+.opening-prose__mine-letter {
+  display: inline;
+  filter: blur(var(--mine-blur, 0px));
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -2242,12 +2288,25 @@ body {
     align-items: center;
   }
 
-  .opening-prose__stack {
+  .opening-prose__stage {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2.4rem;
+  }
+
+  .opening-prose__para {
+    position: relative;
+    left: auto;
+    top: auto;
     transform: none !important;
+    opacity: 1 !important;
   }
 
   .opening-prose__line {
     opacity: 1 !important;
+    height: auto !important;
     filter: none !important;
   }
 }
@@ -2257,8 +2316,8 @@ body {
     padding: clamp(1rem, 5vw, 1.5rem);
   }
 
-  .opening-prose__line {
-    width: min(100%, 18ch);
+  .opening-prose__para {
+    width: min(100%, 22ch);
   }
 }
 
