@@ -8,42 +8,42 @@ export type ScrollGallerySlide = {
 export const synesthesiaSparksSlides: ScrollGallerySlide[] = [
   {
     id: "prevalence",
-    src: "/collab/page5/spark-1.png",
+    src: "/collab/page5/spark-2.png",
     alt: "Illustration about synesthesia prevalence",
     caption:
       "Synesthesia is not as rare as it may sound. One large prevalence study estimated that around 4.4% of the population — roughly 1 in 23 people — may experience some form of synesthesia.",
   },
   {
     id: "types",
-    src: "/collab/page5/spark-2.png",
+    src: "/collab/page5/spark-3.png",
     alt: "Illustration about synesthesia types clustering",
     caption:
       "Synesthesia is often described through specific types, but these types tend to cluster into broader subgroups, pointing to possible shared underlying mechanisms.",
   },
   {
     id: "consistency",
-    src: "/collab/page5/spark-3.png",
+    src: "/collab/page5/spark-6.png",
     alt: "Illustration about personal consistency in synesthesia",
     caption:
       "There is no universal color chart. Yet within one person, associations tend to be remarkably stable — which is why researchers test synesthesia through repeated choices.",
   },
   {
     id: "families",
-    src: "/collab/page5/spark-4.png",
+    src: "/collab/page5/spark-1.png",
     alt: "Illustration about familial synesthesia",
     caption:
       "Synesthesia often appears to cluster in families, suggesting a genetic component — though relatives may not share the same type.",
   },
   {
     id: "childhood",
-    src: "/collab/page5/spark-5.png",
+    src: "/collab/page5/spark-4.png",
     alt: "Illustration about childhood color traces",
     caption:
       "Some synesthetic colors may be shaped by early learning. In grapheme-color synesthesia, letter-color associations can resemble childhood alphabet toys.",
   },
   {
     id: "memory",
-    src: "/collab/page5/spark-6.png",
+    src: "/collab/page5/spark-5.png",
     alt: "Illustration about synesthesia and memory",
     caption:
       "Synesthesia is often linked to memory, but the relationship is nuanced — less a superpower than an additional system of cues.",

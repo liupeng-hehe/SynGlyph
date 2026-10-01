@@ -334,7 +334,7 @@ export function ArcArchiveFloor({
                           alt={item.image.alt}
                           fill
                           sizes="(max-width: 768px) 28vw, 22vw"
-                          className={`wordblue-archive__poster-image wordblue-archive__poster-image--${fit}`}
+                          className={`wordblue-archive__poster-image wordblue-archive__poster-image--${fit} wordblue-archive__poster-image--${item.id}`}
                           draggable={false}
                           priority={index <= 2}
                         />

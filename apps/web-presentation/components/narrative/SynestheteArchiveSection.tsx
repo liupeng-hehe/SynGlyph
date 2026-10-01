@@ -26,7 +26,10 @@ const synestheteItems: ArcArchiveItem[] = synestheteProfiles.map((profile) => ({
   image: {
     src: profile.image.src,
     alt: profile.image.alt,
-    fit: "cover" as const,
+    fit:
+      profile.id === "daniel-tammet" || profile.id === "sean-day"
+        ? ("contain" as const)
+        : ("cover" as const),
   },
 }));
 

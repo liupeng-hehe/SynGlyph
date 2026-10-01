@@ -22,6 +22,55 @@ function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
 }
 
+function sampleImageEdgeColor(image: HTMLImageElement): string | null {
+  const sourceWidth = image.naturalWidth;
+  const sourceHeight = image.naturalHeight;
+  if (sourceWidth <= 0 || sourceHeight <= 0) return null;
+
+  const scale = Math.min(1, 96 / Math.max(sourceWidth, sourceHeight));
+  const width = Math.max(2, Math.round(sourceWidth * scale));
+  const height = Math.max(2, Math.round(sourceHeight * scale));
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+
+  const context = canvas.getContext("2d", { willReadFrequently: true });
+  if (!context) return null;
+
+  try {
+    context.drawImage(image, 0, 0, width, height);
+    const { data } = context.getImageData(0, 0, width, height);
+    const channels: [number[], number[], number[]] = [[], [], []];
+    const edgeDepth = Math.max(1, Math.round(Math.min(width, height) * 0.025));
+
+    for (let y = 0; y < height; y += 1) {
+      for (let x = 0; x < width; x += 1) {
+        const isEdge =
+          x < edgeDepth ||
+          x >= width - edgeDepth ||
+          y < edgeDepth ||
+          y >= height - edgeDepth;
+        if (!isEdge) continue;
+
+        const offset = (y * width + x) * 4;
+        if (data[offset + 3] < 128) continue;
+        channels[0].push(data[offset]);
+        channels[1].push(data[offset + 1]);
+        channels[2].push(data[offset + 2]);
+      }
+    }
+
+    if (channels[0].length === 0) return null;
+    const median = channels.map((channel) => {
+      channel.sort((a, b) => a - b);
+      return channel[Math.floor(channel.length / 2)];
+    });
+    return `rgb(${median[0]} ${median[1]} ${median[2]})`;
+  } catch {
+    return null;
+  }
+}
+
 /** Figure width fraction — fallback until first layout measure. */
 const FIGURE_W = 0.312;
 const FIGURE_H = FIGURE_W;
@@ -426,7 +475,7 @@ function slideMotionStyle(
     opacity,
     zIndex: index === captionIndex ? 12 : Math.max(1, 8 - Math.abs(index - zBase)),
     filter: `brightness(${luminance.toFixed(3)})`,
-    transform: `translate3d(calc(${-x * 100}vw + ${parallax.x.toFixed(2)}px), calc(${y * 100}vh + ${parallax.y.toFixed(2)}px), 0)`,
+    transform: `translate3d(calc(${-x * 100}vw + var(--gallery-path-shift-x, 0px) + ${parallax.x.toFixed(2)}px), calc(${y * 100}vh + ${parallax.y.toFixed(2)}px), 0)`,
   };
 }
 
@@ -469,6 +518,7 @@ export function ScrollGallerySection({
   const [parallax, setParallax] = useState({ x: 0, y: 0 });
   const [layoutReady, setLayoutReady] = useState(false);
   const [loadedSlides, setLoadedSlides] = useState<Record<number, boolean>>({});
+  const [slideBackgrounds, setSlideBackgrounds] = useState<Record<number, string>>({});
   const [chain, setChain] = useState<ChainSpacing>(() => ({
     dx: FIGURE_W,
     dy: FIGURE_H,
@@ -598,6 +648,14 @@ export function ScrollGallerySection({
     });
   }, []);
 
+  const sampleSlideBackground = useCallback((index: number, image: HTMLImageElement) => {
+    const color = sampleImageEdgeColor(image);
+    if (!color) return;
+    setSlideBackgrounds((prev) =>
+      prev[index] === color ? prev : { ...prev, [index]: color },
+    );
+  }, []);
+
   useLayoutEffect(() => {
     measureChain();
   }, [measureChain]);
@@ -624,9 +682,12 @@ export function ScrollGallerySection({
     figures?.forEach((img, index) => {
       if (img.complete && img.naturalWidth > 0) {
         markSlideLoaded(index);
+        if (themeClass.includes("neuro-scroll-section--sparks")) {
+          sampleSlideBackground(index, img);
+        }
       }
     });
-  }, [markSlideLoaded]);
+  }, [markSlideLoaded, sampleSlideBackground, themeClass]);
 
   const updateFromScroll = useCallback(() => {
     const track = trackRef.current;
@@ -843,20 +904,25 @@ export function ScrollGallerySection({
                   figureRefs.current[index] = node;
                 }}
                 className="neuro-scroll-section__figure"
-                style={slideMotionStyle(
-                  scrollProgress,
-                  index,
-                  chain,
-                  focusCenter,
-                  parallax,
-                  layoutReady,
-                  slideCount,
-                  travelSteps,
-                  captionIndex,
-                  leaveFade[index] ?? 1,
-                  luminance[index] ?? 0.52,
-                  isSparks && portraitLane,
-                )}
+                style={{
+                  ...slideMotionStyle(
+                    scrollProgress,
+                    index,
+                    chain,
+                    focusCenter,
+                    parallax,
+                    layoutReady,
+                    slideCount,
+                    travelSteps,
+                    captionIndex,
+                    leaveFade[index] ?? 1,
+                    luminance[index] ?? 0.52,
+                    isSparks && portraitLane,
+                  ),
+                  backgroundColor: isSparks
+                    ? slideBackgrounds[index] ?? "#fff"
+                    : undefined,
+                }}
               >
                 <Image
                   src={slide.src}
@@ -865,7 +931,12 @@ export function ScrollGallerySection({
                   sizes="(max-width: 699px) and (orientation: portrait) 86vw, (max-width: 960px) 78vw, 34vw"
                   className={`neuro-scroll-section__image${loadedSlides[index] ? " neuro-scroll-section__image--ready" : ""}`}
                   priority={index === 0}
-                  onLoad={() => markSlideLoaded(index)}
+                  onLoad={(event) => {
+                    markSlideLoaded(index);
+                    if (isSparks) {
+                      sampleSlideBackground(index, event.currentTarget);
+                    }
+                  }}
                 />
               </figure>
             ))}

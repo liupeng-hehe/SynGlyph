@@ -184,14 +184,14 @@ export const chapters: Chapter[] = [
   {
     id: "artworks-transition",
     eyebrow: "05 / DEFINITION",
-    navLabel: "Union",
+    navLabel: "Definition",
     title: "Synesthesia: A Union of Senses",
     subtitle:
-      "From the Greek syn- meaning “together” and aisthesis meaning “sensation.”",
+      'From the Greek syn-, "together," and aisthēsis, "sensation."',
     body: [
-      "Color can move with sound, hold emotion, shape memory, or become an atmosphere of its own.",
-      "In synesthesia, these crossings are not only artistic gestures, but part of perception itself.",
-      "Synesthesia describes an automatic connection between senses and concepts, where letters may carry colors, sounds may suggest shapes, or time may seem to take up space.",
+      "Color can move with sound, carry emotion, shape memory, or become an atmosphere of its own.",
+      "In synesthesia, these crossings are more than artistic gestures. They are part of perception itself.",
+      "For some people, these crossings aren't a metaphor. They happen on their own: letters carry color, sounds have shape, and time takes up space.",
     ],
     sourceKeys: ["mitSynesthesia", "clevelandSynesthesia", "simner2006"],
   },

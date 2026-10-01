@@ -87,7 +87,6 @@ export function ExhibitWall() {
               {String(activeIndex + 1).padStart(2, "0")} /{" "}
               {String(exhibits.length).padStart(2, "0")}
             </p>
-            <p className="exhibit-feature__credit m-0 font-body">{active.image.credit}</p>
           </div>
         </div>
       </div>

@@ -27,24 +27,27 @@ export function SectionIndicator({ items }: Props) {
 
     if (sections.length === 0) return;
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const visible = entries
-          .filter((entry) => entry.isIntersecting)
-          .sort((a, b) => b.intersectionRatio - a.intersectionRatio);
+    const syncActiveSection = () => {
+      const focusY = window.innerHeight * 0.5;
+      const active = sections.find((section) => {
+        const rect = section.getBoundingClientRect();
+        return rect.top <= focusY && rect.bottom > focusY;
+      });
 
-        const top = visible[0]?.target.id;
-        if (top) setActiveId(top);
-      },
-      {
-        rootMargin: "-35% 0px -45% 0px",
-        threshold: [0, 0.25, 0.5, 0.75],
-      },
-    );
+      if (active) setActiveId(active.id);
+    };
 
-    sections.forEach((section) => observer.observe(section));
-    return () => observer.disconnect();
-  }, [items]);
+    syncActiveSection();
+    const unsubscribe = scroll?.subscribeScroll(syncActiveSection);
+    window.addEventListener("scroll", syncActiveSection, { passive: true });
+    window.addEventListener("resize", syncActiveSection);
+
+    return () => {
+      unsubscribe?.();
+      window.removeEventListener("scroll", syncActiveSection);
+      window.removeEventListener("resize", syncActiveSection);
+    };
+  }, [items, scroll]);
 
   const lightNavIds = new Set([
     "what-is-synesthesia",
