@@ -31,6 +31,17 @@ function chromaOf(hex: string): number {
   return Math.hypot(lab.a, lab.b);
 }
 
+/** Lift lightness and soften chroma for a luminous, less synthetic reading mode. */
+function softenHexForMine(hex: string): string {
+  const lab = hexToLab(hex);
+  const next = clampLab(
+    Math.min(94, 28 + lab.L * 0.7),
+    lab.a * 0.58,
+    lab.b * 0.58,
+  );
+  return labToHex(next.L, next.a, next.b);
+}
+
 /** Display-only: push Lab chroma so letter hues read like the older neon passage. */
 export function punchHexForMine(hex: string): string {
   const lab = hexToLab(hex);
@@ -140,25 +151,27 @@ function rgbCss({ r, g, b }: RGB): string {
 }
 
 /**
- * Now, Mine glyphs: full chroma fill + neon rim, 明暗 from P, 虚实 from S.
- * Does not mix toward black — that was washing the palette out.
+ * Now, Mine glyphs: luminous softened fill, 明暗 from P, 虚实 from S.
+ * Keeps each hue recognizable without a harsh neon treatment.
  */
 export function mineLetterStyle(hex: string, prominence: number, spread: number): CSSProperties {
   const p = boostProminence(prominence);
   const s = boostSpread(spread);
-  const punched = shadeHexByProminence(punchHexForMine(hex), prominence);
-  const rgb = punchRgbForDisplay(hexToRgb(punched), 1.28);
-  const lum = relLuminance(punched);
-  const chroma = chromaOf(punched);
+  const softened = softenHexForMine(
+    shadeHexByProminence(punchHexForMine(hex), prominence),
+  );
+  const rgb = punchRgbForDisplay(hexToRgb(softened), 1.04);
+  const lum = relLuminance(softened);
+  const chroma = chromaOf(softened);
   const pale = lum > 0.84;
   const inkDark = lum < 0.07 && chroma < 12;
-  const strokePx = 0.45 + p * 0.8;
-  const glow = 1.1 + p * 6.2 + (1 - s) * 2.4;
-  const halo = 3.2 + p * 10 + (1 - s) * 5;
-  const glowA = pale ? 0.2 + p * 0.4 : 0.22 + p * 0.62;
-  const haloA = pale ? 0.08 + p * 0.2 : 0.1 + p * 0.34 + (1 - s) * 0.08;
-  const fill = inkDark ? rgbCss(rgb) : pale ? punched : rgbCss(rgb);
-  const rim = pale ? `rgba(${rgb.r},${rgb.g},${rgb.b},${(0.28 + p * 0.5).toFixed(2)})` : rgbCss(rgb);
+  const strokePx = 0.28 + p * 0.5;
+  const glow = 0.8 + p * 4.2 + (1 - s) * 1.8;
+  const halo = 2.4 + p * 7 + (1 - s) * 3.5;
+  const glowA = pale ? 0.14 + p * 0.25 : 0.16 + p * 0.38;
+  const haloA = pale ? 0.06 + p * 0.12 : 0.07 + p * 0.2 + (1 - s) * 0.05;
+  const fill = inkDark ? rgbCss(rgb) : pale ? softened : rgbCss(rgb);
+  const rim = pale ? `rgba(${rgb.r},${rgb.g},${rgb.b},${(0.2 + p * 0.34).toFixed(2)})` : rgbCss(rgb);
   const blur = (1 - s) * 0.42;
 
   return {

@@ -11,6 +11,10 @@ import { ExhibitionChapter } from "./ExhibitionChapter";
 import { InducerWheelSection } from "./InducerWheelSection";
 import { OpeningEditorialHero } from "./OpeningEditorialHero";
 import { OpeningProseSection } from "./OpeningProseSection";
+import {
+  NarrativeBridgeTransition,
+  PersonalArchiveTransition,
+} from "./PersonalArchiveTransition";
 import { PersonalTransitionSection } from "./PersonalTransitionSection";
 import { ScrollGallerySection } from "./NeuroscienceScrollSection";
 import { SectionIndicator } from "./SectionIndicator";
@@ -41,14 +45,27 @@ export function NarrativeExperience() {
             ) : chapter.id === "what-is-synesthesia" ? (
               <InducerWheelSection chapter={chapter} />
             ) : chapter.id === "synesthesia-sparks" ? (
-              <ScrollGallerySection
-                chapter={chapter}
-                slides={synesthesiaSparksSlides}
-                themeClass="neuro-scroll-section neuro-scroll-section--sparks"
-                showBody={false}
-              />
+              <>
+                <ScrollGallerySection
+                  chapter={chapter}
+                  slides={synesthesiaSparksSlides}
+                  themeClass="neuro-scroll-section neuro-scroll-section--sparks"
+                  showBody={false}
+                />
+                <NarrativeBridgeTransition
+                  variant="dark-to-light"
+                  ariaLabel="From synesthesia facts to a personal story"
+                >
+                  It is difficult to understand a perspective you have never
+                  experienced. So I want to share my story—and invite you to see
+                  through my eyes.
+                </NarrativeBridgeTransition>
+              </>
             ) : chapter.id === "personal-transition" ? (
-              <PersonalTransitionSection chapter={chapter} />
+              <>
+                <PersonalTransitionSection chapter={chapter} />
+                <PersonalArchiveTransition />
+              </>
             ) : chapter.id === "synesthetes" ? (
               <SynestheteArchiveSection chapter={chapter} />
             ) : (
