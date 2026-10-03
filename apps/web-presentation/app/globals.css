@@ -512,148 +512,250 @@ body {
   font-style: italic;
 }
 
-/* --- Definition filter disc (circular viewport on black) --- */
+/* --- Definition: floating color photographs on frosted glass --- */
 
 .narrative-chapter--filter-disc {
-  background: #000000;
-  color: #f4f6f7;
+  background-color: var(--pair-hex, #620b0e);
+  color: var(--pair-ink, #f6f1e8);
+  transition: background-color 0.9s ease, color 0.7s ease;
 }
 
-.filter-disc {
-  --disc-size: min(100svh, calc(100vw - 26rem));
-  --disc-rot: 0deg;
-  --pair-hex: #620b0e;
-  --pair-ink: #c45a5e;
+.join-float {
   position: relative;
   height: 100svh;
   overflow: hidden;
-  background: #000000;
-  color: var(--pair-ink);
+  background-color: var(--pair-hex, #620b0e);
+  color: var(--pair-ink, #f6f1e8);
+  transition: background-color 0.9s ease, color 0.7s ease;
 }
 
-.filter-disc:focus-visible {
+.join-float:focus-visible {
   outline: none;
 }
 
-.filter-disc__aperture {
+.join-float__bloom {
   position: absolute;
-  left: 50%;
-  top: 50%;
-  z-index: 1;
-  width: var(--disc-size);
-  height: var(--disc-size);
-  overflow: hidden;
-  background: #ffffff;
+  z-index: 0;
   border-radius: 50%;
-  transform: translate(-50%, -50%);
-}
-
-.filter-disc__rotor {
-  position: absolute;
-  inset: 0;
-  transform: rotate(var(--disc-rot));
-  transform-origin: 50% 50%;
-  transition: transform 1.15s cubic-bezier(0.33, 1, 0.68, 1);
-  will-change: transform;
-}
-
-.filter-disc__plate {
-  position: absolute;
-  inset: 0;
-  overflow: hidden;
-  background: #f4f1ea;
-}
-
-.filter-disc__image {
-  object-fit: cover;
-  object-position: 50% 22%;
-  transform: scale(2.2);
-  transform-origin: 50% 18%;
-}
-
-.filter-disc__gel {
-  position: absolute;
-  inset: 0;
-  background: var(--pair-hex);
-  mix-blend-mode: multiply;
-  opacity: 0.28;
   pointer-events: none;
-  transition: background-color 0.45s ease;
+  filter: blur(36px);
+  transition: background-color 0.9s ease, opacity 0.9s ease;
 }
 
-.filter-disc__tick {
+.join-float__bloom--a {
+  top: -14%;
+  left: -6%;
+  width: 34vw;
+  height: 34vw;
+  background: color-mix(in srgb, var(--pair-hex) 42%, white);
+  opacity: 0.42;
+}
+
+.join-float__bloom--b {
+  right: -8%;
+  bottom: -18%;
+  width: 30vw;
+  height: 30vw;
+  background: color-mix(in srgb, var(--pair-hex) 50%, black);
+  opacity: 0.22;
+}
+
+.join-float__glass {
   position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 62% 52% at 50% 46%, rgb(255 255 255 / 0.32), transparent 68%),
+    linear-gradient(
+      168deg,
+      rgb(255 255 255 / 0.38) 0%,
+      rgb(255 255 255 / 0.1) 38%,
+      rgb(255 255 255 / 0.04) 62%,
+      rgb(255 255 255 / 0.2) 100%
+    );
+  backdrop-filter: blur(18px) saturate(1.2);
+  -webkit-backdrop-filter: blur(18px) saturate(1.2);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.55),
+    inset 0 0 140px rgb(255 255 255 / 0.16),
+    inset 0 -70px 90px rgb(0 0 0 / 0.07);
+}
+
+.join-float__photos {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  perspective: 1200px;
+  perspective-origin: 50% 48%;
+  transform-style: preserve-3d;
+}
+
+.join-float__frame {
+  --slot: 0;
+  --depth-z: -1000px;
+  --depth-y: 0.7rem;
+  --depth-scale: 1;
+  --depth-opacity: 0;
+  --depth-blur: 8px;
+  position: absolute;
+  left: var(--frame-x);
+  top: var(--frame-y);
+  width: clamp(10rem, var(--frame-w), 22rem);
+  height: auto;
+  aspect-ratio: var(--frame-ratio);
+  overflow: hidden;
+  border-radius: 2px;
+  opacity: 0;
+  filter: blur(var(--depth-blur));
+  transform: translate3d(0, var(--depth-y), var(--depth-z)) scale(var(--depth-scale));
+  transform-style: preserve-3d;
+  will-change: transform, filter, opacity;
+  transition:
+    opacity 0.72s ease,
+    filter 1.15s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 1.15s cubic-bezier(0.22, 1, 0.36, 1);
+  box-shadow:
+    0 0 0 1px rgb(255 255 255 / 0.38),
+    0 18px 44px rgb(28 16 12 / 0.16);
+  z-index: calc(10 + var(--slot));
+}
+
+.join-float__frame.is-in {
+  opacity: var(--depth-opacity);
+}
+
+.join-float__frame--depth-4 {
+  --depth-z: -1000px;
+  --depth-y: 0.8rem;
+  --depth-opacity: 0.2;
+  --depth-blur: 8px;
+}
+
+.join-float__frame--depth-3 {
+  --depth-z: -760px;
+  --depth-y: 0.6rem;
+  --depth-opacity: 0.46;
+  --depth-blur: 6px;
+}
+
+.join-float__frame--depth-2 {
+  --depth-z: -520px;
+  --depth-y: 0.4rem;
+  --depth-opacity: 0.72;
+  --depth-blur: 4px;
+}
+
+.join-float__frame--depth-1 {
+  --depth-z: -250px;
+  --depth-y: 0.15rem;
+  --depth-opacity: 0.9;
+  --depth-blur: 1.5px;
+}
+
+.join-float__frame--depth-0 {
+  --depth-z: 0px;
+  --depth-y: 0rem;
+  --depth-opacity: 1;
+  --depth-blur: 0px;
+}
+
+.join-float__frame--depth-passed {
+  --depth-z: 200px;
+  --depth-y: -0.4rem;
+  --depth-scale: 1.02;
+  --depth-opacity: 0.46;
+  --depth-blur: 8px;
+}
+
+.join-float__photo {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 38%;
+  transform: scale(1.06);
+}
+
+.join-float__veil {
+  position: absolute;
+  z-index: 1;
   left: 50%;
   top: 50%;
-  z-index: 3;
-  width: 0.72rem;
-  height: 0.72rem;
-  padding: 0;
-  border: 1.5px solid #ffffff;
-  border-radius: 50%;
-  margin: -0.36rem 0 0 -0.36rem;
-  transform: rotate(var(--tick-a)) translateY(calc(var(--disc-size) / -2 + 1.15rem));
-  transform-origin: center;
-  cursor: pointer;
-  box-shadow: 0 0 0 1px rgb(0 0 0 / 0.18);
+  width: min(44rem, 70vw);
+  height: min(24rem, 52vh);
+  transform: translate(-50%, -52%);
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse at center,
+    color-mix(in srgb, var(--pair-hex) 24%, rgb(255 255 255 / 0.34)) 0%,
+    color-mix(in srgb, var(--pair-hex) 12%, transparent) 48%,
+    transparent 74%
+  );
+  backdrop-filter: blur(14px) saturate(1.3);
+  -webkit-backdrop-filter: blur(14px) saturate(1.3);
+  mask-image: radial-gradient(ellipse at center, #000 36%, transparent 74%);
 }
 
-.filter-disc__tick--active {
-  width: 0.92rem;
-  height: 0.92rem;
-  margin: -0.46rem 0 0 -0.46rem;
-}
-
-.filter-disc__copy {
+.join-float__copy {
   position: absolute;
-  left: calc(50% + (var(--disc-size) / 2) + 1.4rem);
+  z-index: 4;
+  left: 50%;
   top: 50%;
-  z-index: 2;
   display: flex;
   flex-direction: column;
-  width: min(22rem, calc(50vw - (var(--disc-size) / 2) - 2.4rem));
-  transform: translateY(-50%);
+  width: min(34rem, calc(100% - 8rem));
+  transform: translate(-50%, -52%);
+  text-align: center;
+  animation: join-copy-in 0.7s ease;
 }
 
-.filter-disc__title {
-  font-size: clamp(1.45rem, 2.6vw, 2.2rem);
-  font-weight: 700;
-  letter-spacing: -0.03em;
-  line-height: 1.12;
+.join-float__title {
+  font-size: clamp(2.15rem, 4.4vw, 3.7rem);
+  font-weight: 500;
+  letter-spacing: -0.035em;
+  line-height: 1.05;
   color: var(--pair-ink);
-  transition: color 0.45s ease;
 }
 
-.filter-disc__line {
-  margin-top: 0.7rem;
-  font-size: clamp(0.88rem, 1.3vw, 1.02rem);
-  line-height: 1.55;
+.join-float__line {
+  margin-top: 0.9rem;
+  font-size: clamp(0.95rem, 1.3vw, 1.08rem);
+  line-height: 1.6;
   color: var(--pair-ink);
-  opacity: 0.88;
-  transition: color 0.45s ease;
+  opacity: 0.9;
 }
 
-@media (max-width: 959px) {
-  .filter-disc {
-    --disc-size: min(88vw, 58svh);
+@keyframes join-copy-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@media (max-width: 800px) {
+  .join-float__copy {
+    width: min(22rem, calc(100% - 2.4rem));
   }
 
-  .filter-disc__copy {
-    left: 50%;
-    top: auto;
-    bottom: clamp(1.1rem, 4vh, 2.2rem);
-    width: min(32rem, calc(100% - 2.2rem));
-    transform: translateX(-50%);
-    text-align: center;
+  .join-float__veil {
+    width: min(24rem, 92vw);
+    height: min(20rem, 58vh);
+  }
+
+  .join-float__frame {
+    width: clamp(6rem, var(--frame-w), 9rem);
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .filter-disc__rotor,
-  .filter-disc__gel,
-  .filter-disc__title,
-  .filter-disc__line {
+  .join-float,
+  .narrative-chapter--filter-disc,
+  .join-float__bloom,
+  .join-float__frame,
+  .join-float__title,
+  .join-float__copy {
     transition: none;
+    animation: none;
   }
 }
 

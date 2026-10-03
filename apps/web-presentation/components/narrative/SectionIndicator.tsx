@@ -17,6 +17,7 @@ type Props = {
 export function SectionIndicator({ items }: Props) {
   const scroll = useSmoothScroll();
   const [activeId, setActiveId] = useState(items[0]?.id ?? "");
+  const [navMode, setNavMode] = useState<"on-dark" | "on-light" | null>(null);
 
   useEffect(() => {
     if (items.length === 0) return;
@@ -49,13 +50,32 @@ export function SectionIndicator({ items }: Props) {
     };
   }, [items, scroll]);
 
+  useEffect(() => {
+    const section = document.getElementById(activeId);
+    if (!section) {
+      setNavMode(null);
+      return;
+    }
+
+    const read = () => {
+      const value = section.getAttribute("data-nav");
+      setNavMode(value === "on-dark" || value === "on-light" ? value : null);
+    };
+
+    read();
+    const observer = new MutationObserver(read);
+    observer.observe(section, { attributes: true, attributeFilter: ["data-nav"] });
+    return () => observer.disconnect();
+  }, [activeId]);
+
   const lightNavIds = new Set([
     "what-is-synesthesia",
     "synesthesia-sparks",
     "artworks-transition",
     "synesthetes",
   ]);
-  const isLightNav = lightNavIds.has(activeId);
+  const isLightNav =
+    navMode === "on-dark" ? true : navMode === "on-light" ? false : lightNavIds.has(activeId);
 
   if (activeId === "opening") return null;
 
