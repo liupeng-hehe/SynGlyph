@@ -32,7 +32,7 @@ export const inducerPairImages: InducerPairImage[] = [
     alt: "Red and vitality color-emotion card",
     colorLabel: "Red",
     emotionLabel: "Vitality",
-    hex: "#620b0e",
+    hex: "#BF0C09",
     lines: [
       "Red holds a ceremonial warmth — auspicious, passionate, and quietly powerful.",
       "It carries love, prosperity, and celebration like a pulse beneath the surface.",
@@ -53,7 +53,7 @@ export const inducerPairImages: InducerPairImage[] = [
     alt: "Orange and optimism color-emotion card",
     colorLabel: "Orange",
     emotionLabel: "Optimism",
-    hex: "#f4be18",
+    hex: "#fa9500",
     lines: [
       "Orange holds a spirited warmth — quick-minded, curious, and bright with possibility.",
       "It moves like warm sunlight, turning energy into hope and attention into optimism.",
@@ -95,7 +95,7 @@ export const inducerPairImages: InducerPairImage[] = [
     alt: "Pink and tenderness color-emotion card",
     colorLabel: "Pink",
     emotionLabel: "Tenderness",
-    hex: "#d9bcba",
+    hex: "#F7C2BE",
     lines: [
       "Pink carries a softer kind of love — gentle, intimate, and quietly cared for.",
       "It holds affection softly, like petals and a quiet blush.",
@@ -116,7 +116,7 @@ export const inducerPairImages: InducerPairImage[] = [
     alt: "Green and balance color-emotion card",
     colorLabel: "Green",
     emotionLabel: "Balance",
-    hex: "#415b2a",
+    hex: "#79933D",
     lines: [
       "Green carries the calm of living things — balanced, breathing, and gently renewed.",
       "It gives the body somewhere to return, like fern shade, soft moss, and the quiet line of a leaf.",
@@ -137,7 +137,7 @@ export const inducerPairImages: InducerPairImage[] = [
     alt: "Blue and calm color-emotion card",
     colorLabel: "Blue",
     emotionLabel: "Calm",
-    hex: "#36608f",
+    hex: "#1B75CB",
     lines: [
       "Blue carries a quiet distance — cool, spacious, and gently composed.",
       "It slows the feeling down, like still water, and silk moving softly in light.",
@@ -159,7 +159,7 @@ export const inducerPairImages: InducerPairImage[] = [
     alt: "Purple and inspired color-emotion card",
     colorLabel: "Purple",
     emotionLabel: "Inspired",
-    hex: "#725588",
+    hex: "#B895D3",
     lines: [
       "Purple carries a quiet elegance — noble, dreamlike, and deeply composed.",
       "It feels like a thought wrapped in dusk, where imagination becomes slower, richer, and more mysterious.",

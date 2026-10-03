@@ -28,7 +28,8 @@ type FramePhoto = {
   x: number;
   y: number;
   width: number;
-  ratio: number;
+  horizontalEdge: "left" | "right";
+  verticalEdge: "top" | "bottom";
 };
 
 type Frame = {
@@ -41,17 +42,19 @@ type StagePhoto = FramePhoto & {
   present: boolean;
 };
 
-const LOOK_AHEAD = 4;
+const LOOK_AHEAD = 7;
+const PRE_ROLL = 3;
+const PHOTO_LAYOUT_VERSION = 3;
 
 const PHOTO_ANCHORS = [
-  { x: -2, y: -5, width: 20, ratio: 0.84 },
-  { x: 79, y: 13, width: 21, ratio: 0.72 },
-  { x: 9, y: 25, width: 16, ratio: 0.82 },
-  { x: 13, y: 67, width: 15, ratio: 0.86 },
-  { x: 69, y: -5, width: 16, ratio: 1.12 },
-  { x: 79, y: 46, width: 15, ratio: 0.8 },
-  { x: 42, y: 75, width: 14, ratio: 1.05 },
-  { x: 2, y: 51, width: 15, ratio: 0.78 },
+  { x: 2, y: -18, width: 18, horizontalEdge: "left", verticalEdge: "top" },
+  { x: 2, y: -18, width: 18, horizontalEdge: "right", verticalEdge: "top" },
+  { x: 4, y: 27, width: 16, horizontalEdge: "right", verticalEdge: "top" },
+  { x: 4, y: 27, width: 16, horizontalEdge: "right", verticalEdge: "bottom" },
+  { x: 2, y: -18, width: 18, horizontalEdge: "right", verticalEdge: "bottom" },
+  { x: 2, y: -18, width: 18, horizontalEdge: "left", verticalEdge: "bottom" },
+  { x: 4, y: 27, width: 16, horizontalEdge: "left", verticalEdge: "bottom" },
+  { x: 4, y: 27, width: 16, horizontalEdge: "left", verticalEdge: "top" },
 ] as const;
 
 function seededUnit(seed: number): number {
@@ -61,15 +64,27 @@ function seededUnit(seed: number): number {
 
 /** Stable, slightly irregular placement around the central copy. */
 function placementFor(pairIndex: number, photoIndex: number) {
-  const slot = photoIndex % PHOTO_ANCHORS.length;
-  const anchor = PHOTO_ANCHORS[slot] ?? PHOTO_ANCHORS[0];
+  // Three- and five-slot jumps keep consecutive depth layers in separate
+  // quadrants. A one-slot-equivalent jump (such as 7 on eight anchors) causes
+  // the visible photos to bunch together along the same side.
+  const steps = [3, 5] as const;
+  const step = steps[pairIndex % steps.length] ?? 3;
+  const offset = (pairIndex * 7 + 3) % PHOTO_ANCHORS.length;
+  const anchorIndex = (offset + photoIndex * step) % PHOTO_ANCHORS.length;
+  const anchor = PHOTO_ANCHORS[anchorIndex] ?? PHOTO_ANCHORS[0];
   const seed = pairIndex * 97 + photoIndex * 17 + 11;
+  const horizontalJitter = seededUnit(seed) * 2.5;
+  const verticalJitter =
+    anchor.verticalEdge === "top" && anchor.y > 20
+      ? (seededUnit(seed + 1) - 0.5) * 6
+      : seededUnit(seed + 1) * 3;
   return {
-    slot,
-    x: anchor.x + (seededUnit(seed) - 0.5) * 7,
-    y: anchor.y + (seededUnit(seed + 1) - 0.5) * 7,
-    width: anchor.width + (seededUnit(seed + 2) - 0.5) * 3.5,
-    ratio: anchor.ratio + (seededUnit(seed + 3) - 0.5) * 0.12,
+    slot: anchorIndex,
+    x: anchor.x + horizontalJitter,
+    y: anchor.y + verticalJitter,
+    width: anchor.width + (seededUnit(seed + 2) - 0.5) * 3,
+    horizontalEdge: anchor.horizontalEdge,
+    verticalEdge: anchor.verticalEdge,
   };
 }
 
@@ -87,27 +102,8 @@ function hexLuminance(hex: string): number {
   return 0.2126 * channel(0) + 0.7152 * channel(2) + 0.0722 * channel(4);
 }
 
-function mixHex(hex: string, onto: string, amount: number): string {
-  const parse = (value: string) => {
-    const raw = value.replace("#", "");
-    return [0, 2, 4].map((start) => Number.parseInt(raw.slice(start, start + 2), 16));
-  };
-  const from = parse(hex);
-  const to = parse(onto);
-  const mixed = from.map((channel, index) =>
-    Math.round(channel + ((to[index] ?? 0) - channel) * amount),
-  );
-  return `#${mixed.map((channel) => channel.toString(16).padStart(2, "0")).join("")}`;
-}
-
-/** Frosted wash of the swatch. Light glass gets dark type; deep glass gets light type. */
-function inkFor(hex: string): string {
-  const glazed = mixHex(hex, "#ffffff", 0.28);
-  return hexLuminance(glazed) > 0.5 ? "#241c16" : "#f6f1e8";
-}
-
 function navTone(hex: string): "on-dark" | "on-light" {
-  return inkFor(hex) === "#241c16" ? "on-light" : "on-dark";
+  return hexLuminance(hex) > 0.42 ? "on-light" : "on-dark";
 }
 
 /**
@@ -118,14 +114,13 @@ function buildFrames(images: InducerPairImage[]): Frame[] {
   const frames: Frame[] = [];
   images.forEach((item, pairIndex) => {
     const count = item.photos.length;
-    for (let focus = 0; focus < count; focus += 1) {
-      const first = Math.max(0, focus - 1);
-      const last = Math.min(count - 1, focus + LOOK_AHEAD);
+    for (let focus = -PRE_ROLL; focus < count; focus += 1) {
       frames.push({
         id: `${item.colorLabel}-${focus}`,
         pairIndex,
-        photos: item.photos.slice(first, last + 1).map((src, offset) => {
-          const index = first + offset;
+        // Keep the whole color set mounted so each image travels forward from
+        // deep space instead of being inserted when it becomes visible.
+        photos: item.photos.map((src, index) => {
           const placement = placementFor(pairIndex, index);
           return {
             key: `${pairIndex}-${index}`,
@@ -141,7 +136,12 @@ function buildFrames(images: InducerPairImage[]): Frame[] {
 }
 
 function useMountedPhotos(photos: FramePhoto[]) {
-  const signature = photos.map((photo) => `${photo.key}:${photo.depth}`).join("|");
+  const signature = photos
+    .map(
+      (photo) =>
+        `${photo.key}:${photo.depth}:${photo.slot}:${photo.x}:${photo.y}:${photo.horizontalEdge}:${photo.verticalEdge}`,
+    )
+    .join("|");
   const photosRef = useRef(photos);
   photosRef.current = photos;
   const [mounted, setMounted] = useState<StagePhoto[]>([]);
@@ -167,16 +167,20 @@ function useMountedPhotos(photos: FramePhoto[]) {
 
   useEffect(() => {
     const keys = new Set(photosRef.current.map((photo) => photo.key));
-    const frame = requestAnimationFrame(() => {
-      setMounted((current) =>
-        current.map((photo) => (keys.has(photo.key) ? { ...photo, present: true } : photo)),
-      );
+    let revealFrame = 0;
+    const layoutFrame = requestAnimationFrame(() => {
+      revealFrame = requestAnimationFrame(() => {
+        setMounted((current) =>
+          current.map((photo) => (keys.has(photo.key) ? { ...photo, present: true } : photo)),
+        );
+      });
     });
     const drop = window.setTimeout(() => {
       setMounted((current) => current.filter((photo) => keys.has(photo.key)));
     }, 980);
     return () => {
-      cancelAnimationFrame(frame);
+      cancelAnimationFrame(layoutFrame);
+      cancelAnimationFrame(revealFrame);
       window.clearTimeout(drop);
     };
   }, [signature]);
@@ -186,8 +190,9 @@ function useMountedPhotos(photos: FramePhoto[]) {
 
 export function InducerWheelSection({ chapter }: Props) {
   const rootRef = useRef<HTMLDivElement>(null);
-  const frames = useMemo(() => buildFrames(inducerPairImages), []);
+  const frames = useMemo(() => buildFrames(inducerPairImages), [PHOTO_LAYOUT_VERSION]);
   const [activeIndex, setActiveIndex] = useState(0);
+  const [stageVisible, setStageVisible] = useState(false);
   const maxIndex = Math.max(0, frames.length - 1);
   const frame = frames[activeIndex] ?? frames[0];
   const pair = frame ? inducerPairImages[frame.pairIndex] : undefined;
@@ -205,8 +210,29 @@ export function InducerWheelSection({ chapter }: Props) {
     itemCount: frames.length,
     activeIndex,
     onIndexChange: setFrameIndex,
-    stepMs: 860,
+    stepMs: 220,
   });
+
+  useEffect(() => {
+    const stage = rootRef.current;
+    if (!stage) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => setStageVisible(Boolean(entry?.isIntersecting)),
+      { threshold: 0.28 },
+    );
+    observer.observe(stage);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    inducerPairImages.forEach((item) => {
+      item.photos.forEach((src) => {
+        const image = new window.Image();
+        image.src = src;
+      });
+    });
+  }, []);
 
   const handleKey = (event: KeyboardEvent<HTMLDivElement>) => {
     if (event.key === "ArrowDown" || event.key === "ArrowRight") {
@@ -226,8 +252,6 @@ export function InducerWheelSection({ chapter }: Props) {
 
   if (!frame || !pair) return null;
 
-  const ink = inkFor(pair.hex);
-
   return (
     <section
       id={chapter.id}
@@ -238,13 +262,13 @@ export function InducerWheelSection({ chapter }: Props) {
       style={
         {
           "--pair-hex": pair.hex,
-          "--pair-ink": ink,
+          "--pair-ink": pair.colorLabel === "White" ? "#686d72" : "#ffffff",
         } as CSSProperties
       }
     >
       <div
         ref={rootRef}
-        className="join-float"
+        className={`join-float${stageVisible ? " is-stage-visible" : ""}`}
         data-wheel-sequence
         data-wheel-at={activeIndex <= 0 ? "start" : activeIndex >= maxIndex ? "end" : "mid"}
         tabIndex={0}
@@ -258,16 +282,16 @@ export function InducerWheelSection({ chapter }: Props) {
           {photos.map((photo) => (
             <div
               key={photo.key}
-              className={`join-float__frame join-float__frame--${photo.slot} join-float__frame--depth-${photo.depth < 0 ? "passed" : photo.depth}${photo.present ? " is-in" : ""}`}
+              className={`join-float__frame${photo.horizontalEdge === "right" ? " is-right-anchored" : ""}${photo.verticalEdge === "bottom" ? " is-bottom-anchored" : ""} join-float__frame--depth-${photo.depth < -2 ? "gone" : photo.depth === -2 ? "passed-2" : photo.depth === -1 ? "passed-1" : photo.depth > 2 ? "far" : photo.depth}${photo.present ? " is-in" : ""}`}
               style={
                 {
                   "--frame-x": `${photo.x.toFixed(2)}%`,
                   "--frame-y": `${photo.y.toFixed(2)}%`,
                   "--frame-w": `${photo.width.toFixed(2)}vw`,
-                  "--frame-ratio": photo.ratio.toFixed(3),
                   transitionDelay: photo.present
                     ? `${Math.max(0, photo.depth) * 24}ms`
                     : "0ms",
+                  zIndex: photo.depth < 0 ? 10 : 30 - photo.depth,
                 } as CSSProperties
               }
             >
@@ -282,11 +306,13 @@ export function InducerWheelSection({ chapter }: Props) {
           <h3 id={`${chapter.id}-title`} className="join-float__title m-0 font-prose">
             {titleFor(pair)}
           </h3>
-          {pair.lines.map((line) => (
-            <p key={line} className="join-float__line m-0 font-body">
-              {line}
-            </p>
-          ))}
+          <div className="join-float__lines">
+            {pair.lines.map((line) => (
+              <p key={line} className="join-float__line m-0 font-body">
+                {line}
+              </p>
+            ))}
+          </div>
         </div>
       </div>
     </section>
