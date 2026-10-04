@@ -13,7 +13,7 @@ const PROSE_PINK = "#ea9dac";
 const MINE_FULL_FROM = "Another layer of experience";
 const GOO_MS = 1680;
 const FLOW_MS = 500;
-const EXIT_LOCK_MS = 1500;
+const EXIT_LOCK_MS = 480;
 const LAST_LINE_HOLD_MS = 3200;
 const LINE_STEP_MS = 760;
 const BLUR_START = 13.5;
@@ -216,6 +216,8 @@ export function OpeningProseSection({ chapter }: Props) {
   const pendingIndexRef = useRef<number | null>(null);
   const exitTimerRef = useRef(0);
   const lastLineHoldUntilRef = useRef(0);
+  const skipArriveGooRef = useRef(false);
+  const arrivedForwardRef = useRef(true);
   const [activeIndex, setActiveIndex] = useState(0);
   const [exitingParagraph, setExitingParagraph] = useState<number | null>(null);
   const [revealIncoming, setRevealIncoming] = useState(true);
@@ -239,6 +241,7 @@ export function OpeningProseSection({ chapter }: Props) {
         return;
       }
 
+      arrivedForwardRef.current = next >= activeIndexRef.current;
       paragraphStepRef.current = crossed;
 
       if (crossingForward && fromLine) {
@@ -267,16 +270,24 @@ export function OpeningProseSection({ chapter }: Props) {
     return Boolean(line && (!next || next.paragraph !== line.paragraph));
   }, [lines]);
 
+  const hasNextParagraph = useCallback((index: number) => {
+    const line = lines[index];
+    const next = lines[index + 1];
+    return Boolean(line && next && next.paragraph !== line.paragraph);
+  }, [lines]);
+
+  const holdMsForIndex = useCallback((index: number) => {
+    if (!isLastLineOfParagraph(index)) return LINE_STEP_MS;
+    return LAST_LINE_HOLD_MS;
+  }, [isLastLineOfParagraph]);
+
   const consumeProseWheel = useCallback(
-    (index: number) => {
+    (index: number, event: WheelEvent) => {
+      if (event.deltaY < 0) return false;
       if (!isLastLineOfParagraph(index)) return false;
-      const line = lines[index];
-      const next = lines[index + 1];
-      const hasNextParagraph = Boolean(next && next.paragraph !== line?.paragraph);
-      if (hasNextParagraph) return true;
       return performance.now() < lastLineHoldUntilRef.current;
     },
-    [isLastLineOfParagraph, lines],
+    [isLastLineOfParagraph],
   );
 
   useSnapSectionWheelSequence({
@@ -289,10 +300,7 @@ export function OpeningProseSection({ chapter }: Props) {
     consumeWheel: consumeProseWheel,
     stepMsForIndex: (nextIndex) => {
       if (paragraphStepRef.current) return EXIT_LOCK_MS;
-      if (isLastLineOfParagraph(nextIndex)) {
-        return LAST_LINE_HOLD_MS;
-      }
-      return LINE_STEP_MS;
+      return holdMsForIndex(nextIndex);
     },
   });
 
@@ -432,8 +440,10 @@ export function OpeningProseSection({ chapter }: Props) {
 
     if (snapNextRef.current) {
       snapNextRef.current = false;
+      skipArriveGooRef.current = true;
       snapToBlock(activeIndex);
       setRevealIncoming(true);
+      applyGoo(activeIndex, 1);
       return;
     }
 
@@ -448,30 +458,46 @@ export function OpeningProseSection({ chapter }: Props) {
     }
 
     alignShownBlock(activeIndex);
-  }, [activeIndex, activeLine?.paragraph, alignExit, alignShownBlock, exitingParagraph, reduceMotion, snapToBlock]);
+  }, [activeIndex, activeLine?.paragraph, alignExit, alignShownBlock, applyGoo, exitingParagraph, reduceMotion, snapToBlock]);
 
   useEffect(() => {
     if (reduceMotion || exitingParagraph !== null || !revealIncoming) return;
+    if (skipArriveGooRef.current) {
+      skipArriveGooRef.current = false;
+      applyGoo(activeIndex, 1);
+      return;
+    }
     startGoo(activeIndex);
-  }, [activeIndex, exitingParagraph, reduceMotion, revealIncoming, startGoo]);
+  }, [activeIndex, applyGoo, exitingParagraph, reduceMotion, revealIncoming, startGoo]);
 
   useEffect(() => {
     if (isLastLineOfParagraph(activeIndex)) {
-      lastLineHoldUntilRef.current = performance.now() + LAST_LINE_HOLD_MS;
+      const appearMs = reduceMotion ? 0 : GOO_MS;
+      lastLineHoldUntilRef.current =
+        performance.now() + appearMs + holdMsForIndex(activeIndex);
+      return;
     }
-  }, [activeIndex, isLastLineOfParagraph]);
+    lastLineHoldUntilRef.current = 0;
+  }, [activeIndex, holdMsForIndex, isLastLineOfParagraph, reduceMotion]);
 
   useEffect(() => {
     if (reduceMotion || exitingParagraph !== null || isExitingRef.current) return;
-    const line = lines[activeIndex];
-    const next = lines[activeIndex + 1];
-    if (!line || !next || next.paragraph === line.paragraph) return;
+    if (!arrivedForwardRef.current) return;
+    if (!isLastLineOfParagraph(activeIndex) || !hasNextParagraph(activeIndex)) return;
 
+    const appearMs = reduceMotion ? 0 : GOO_MS;
     const timer = window.setTimeout(() => {
       setFrameIndex(activeIndex + 1);
-    }, LAST_LINE_HOLD_MS);
+    }, appearMs + LAST_LINE_HOLD_MS);
     return () => window.clearTimeout(timer);
-  }, [activeIndex, exitingParagraph, lines, reduceMotion, setFrameIndex]);
+  }, [
+    activeIndex,
+    exitingParagraph,
+    hasNextParagraph,
+    isLastLineOfParagraph,
+    reduceMotion,
+    setFrameIndex,
+  ]);
 
   useEffect(() => {
     const onResize = () => alignFlowRef.current();

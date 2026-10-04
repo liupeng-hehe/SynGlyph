@@ -15,6 +15,7 @@ import type { Chapter } from "@/content/synesthesiaContent";
 import { inducerPairImages, type InducerPairImage } from "@/content/inducerPairImages";
 
 import { FilterPreviewSnake } from "./FilterPreviewSnake";
+import { FilterRewindConstellation } from "./FilterRewindConstellation";
 import { useSnapSectionWheelSequence } from "./useSnapSectionWheelSequence";
 
 type Props = {
@@ -102,20 +103,6 @@ function placementFor(pairIndex: number, photoIndex: number) {
 
 function titleFor(item: InducerPairImage): string {
   return `${item.colorLabel} / ${item.emotionLabel}`;
-}
-
-function hexLuminance(hex: string): number {
-  const raw = hex.replace("#", "");
-  if (raw.length !== 6) return 0;
-  const channel = (start: number) => {
-    const value = Number.parseInt(raw.slice(start, start + 2), 16) / 255;
-    return value <= 0.03928 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
-  };
-  return 0.2126 * channel(0) + 0.7152 * channel(2) + 0.0722 * channel(4);
-}
-
-function navTone(hex: string): "on-dark" | "on-light" {
-  return hexLuminance(hex) > 0.42 ? "on-light" : "on-dark";
 }
 
 /**
@@ -228,12 +215,15 @@ export function InducerWheelSection({ chapter }: Props) {
   const [direction, setDirection] = useState<1 | -1>(1);
   const [stageVisible, setStageVisible] = useState(false);
   const [previewProgress, setPreviewProgress] = useState(0);
+  const [overviewMode, setOverviewMode] = useState(false);
   const activeIndexRef = useRef(activeIndex);
   const previewProgressRef = useRef(0);
+  const overviewModeRef = useRef(false);
   const wasIntersectingRef = useRef(false);
   const bridgeHoldUntilRef = useRef(0);
   activeIndexRef.current = activeIndex;
   previewProgressRef.current = previewProgress;
+  overviewModeRef.current = overviewMode;
   const maxIndex = Math.max(0, frames.length - 1);
   const frame = frames[activeIndex] ?? frames[0];
   const pair = frame ? inducerPairImages[frame.pairIndex] : undefined;
@@ -243,6 +233,14 @@ export function InducerWheelSection({ chapter }: Props) {
   const setFrameIndex = useCallback(
     (index: number) => {
       const nextIndex = Math.max(0, Math.min(maxIndex, index));
+      if (nextIndex < activeIndexRef.current && !overviewModeRef.current) {
+        overviewModeRef.current = true;
+        setOverviewMode(true);
+        activeIndexRef.current = 0;
+        setActiveIndex(0);
+        setDirection(-1);
+        return;
+      }
       if (nextIndex !== activeIndexRef.current) {
         const nextFrame = frames[nextIndex];
         const prevFrame = frames[activeIndexRef.current];
@@ -279,7 +277,13 @@ export function InducerWheelSection({ chapter }: Props) {
         current.phase === "closing" ||
         (current.phase === "outro" &&
           current.pairIndex === inducerPairImages.length - 1);
-      if (isBridge && performance.now() < bridgeHoldUntilRef.current) return true;
+      if (
+        isBridge &&
+        event.deltaY > 0 &&
+        performance.now() < bridgeHoldUntilRef.current
+      ) {
+        return true;
+      }
       return false;
     },
     [frames],
@@ -287,12 +291,12 @@ export function InducerWheelSection({ chapter }: Props) {
 
   useSnapSectionWheelSequence({
     rootRef,
-    itemCount: frames.length,
-    activeIndex,
+    itemCount: overviewMode ? 1 : frames.length,
+    activeIndex: overviewMode ? 0 : activeIndex,
     onIndexChange: setFrameIndex,
     stepMs: 280,
     entryLockMs: 480,
-    consumeWheel: consumeFilterWheel,
+    consumeWheel: overviewMode ? undefined : consumeFilterWheel,
     stepMsForIndex: (index) => {
       const current = frames[index];
       if (current?.phase === "opening-transition") return 2100;
@@ -315,6 +319,10 @@ export function InducerWheelSection({ chapter }: Props) {
   });
 
   useEffect(() => {
+    if (direction < 0) {
+      bridgeHoldUntilRef.current = 0;
+      return;
+    }
     const current = frames[activeIndex];
     if (current?.phase === "closing") {
       bridgeHoldUntilRef.current = performance.now() + CLOSING_HOLD_MS;
@@ -326,7 +334,7 @@ export function InducerWheelSection({ chapter }: Props) {
     ) {
       bridgeHoldUntilRef.current = performance.now() + PURPLE_EXIT_HOLD_MS;
     }
-  }, [activeIndex, frames]);
+  }, [activeIndex, direction, frames]);
 
   useEffect(() => {
     const stage = rootRef.current;
@@ -339,9 +347,11 @@ export function InducerWheelSection({ chapter }: Props) {
 
         if (isIntersecting && !wasIntersectingRef.current) {
           const fromTop = entry.boundingClientRect.top >= 0;
+          overviewModeRef.current = !fromTop;
+          setOverviewMode(!fromTop);
           previewProgressRef.current = fromTop ? 0 : 1;
           setPreviewProgress(fromTop ? 0 : 1);
-          setFrameIndex(fromTop ? 0 : maxIndex);
+          setFrameIndex(0);
         }
 
         wasIntersectingRef.current = isIntersecting;
@@ -462,15 +472,19 @@ export function InducerWheelSection({ chapter }: Props) {
     <section
       id={chapter.id}
       data-snap-section
-      data-nav={isOpeningState || isClosing || isLastColorOutro ? "on-light" : navTone(pair.hex)}
-      className={`narrative-chapter narrative-chapter--filter-disc min-h-[100svh] scroll-mt-0${isClosing ? " is-to-exhibit" : ""}`}
+      data-nav="on-light"
+      className={`narrative-chapter narrative-chapter--filter-disc min-h-[100svh] scroll-mt-0${isClosing ? " is-to-exhibit" : ""}${overviewMode ? " is-rewind-overview" : ""}`}
       aria-labelledby={`${chapter.id}-title`}
       style={
         {
           "--pair-hex": pair.hex,
-          "--stage-bg": isClosing ? EXHIBIT_STAGE_BACKGROUND : FILTER_STAGE_BACKGROUND,
+          "--stage-bg": overviewMode
+            ? "#ffffff"
+            : isClosing
+              ? EXHIBIT_STAGE_BACKGROUND
+              : FILTER_STAGE_BACKGROUND,
           "--pair-ink":
-            isOpeningState || isClosing || isLastColorOutro
+            overviewMode || isOpeningState || isClosing || isLastColorOutro
               ? "#3f4549"
               : pair.colorLabel === "White"
                 ? "#686d72"
@@ -480,13 +494,14 @@ export function InducerWheelSection({ chapter }: Props) {
     >
       <div
         ref={rootRef}
-        className={`join-float${stageVisible ? " is-stage-visible" : ""}${isClosing ? " is-to-exhibit" : ""}`}
+        className={`join-float${stageVisible ? " is-stage-visible" : ""}${isClosing ? " is-to-exhibit" : ""}${overviewMode ? " is-rewind-overview" : ""}`}
         data-wheel-sequence
-        data-wheel-at={activeIndex <= 0 ? "start" : activeIndex >= maxIndex ? "end" : "mid"}
+        data-wheel-at={overviewMode || activeIndex <= 0 ? "start" : activeIndex >= maxIndex ? "end" : "mid"}
         tabIndex={0}
         onKeyDown={handleKey}
       >
-        {isOpening && stageVisible ? <FilterPreviewSnake progress={previewProgress} /> : null}
+        {overviewMode ? <FilterRewindConstellation /> : null}
+        {isOpening && stageVisible && !overviewMode ? <FilterPreviewSnake progress={previewProgress} /> : null}
 
         <div
           className={`join-float__filter-wheel${isWheelStep ? " is-stepping" : ""}${isOpeningTransition ? " is-opening-step" : ""}`}

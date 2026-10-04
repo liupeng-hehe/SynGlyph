@@ -22,6 +22,7 @@ function featuredTitleLines(exhibit: Exhibit): { lead: string; work: string } {
 export function ExhibitWall() {
   const rootRef = useRef<HTMLDivElement>(null);
   const [activeIndex, setActiveIndex] = useState(0);
+  const [inView, setInView] = useState(false);
   const active = exhibits[activeIndex];
 
   const goTo = useCallback((index: number) => {
@@ -43,6 +44,20 @@ export function ExhibitWall() {
   });
 
   useEffect(() => {
+    const root = rootRef.current;
+    if (!root) return;
+    const section = root.closest("[data-snap-section]") ?? root;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setInView(Boolean(entry?.isIntersecting && entry.intersectionRatio >= 0.28));
+      },
+      { threshold: [0.16, 0.28, 0.45] },
+    );
+    observer.observe(section);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "ArrowRight") step(1);
       if (event.key === "ArrowLeft") step(-1);
@@ -59,7 +74,7 @@ export function ExhibitWall() {
   return (
     <div
       ref={rootRef}
-      className="exhibit-feature"
+      className={`exhibit-feature${inView ? " is-in-view" : ""}`}
       data-wheel-sequence
       data-wheel-at={
         activeIndex <= 0 ? "start" : activeIndex >= exhibits.length - 1 ? "end" : "mid"

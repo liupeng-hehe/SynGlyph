@@ -18,7 +18,7 @@ export const neuroscienceScrollSlides: NeuroscienceScrollSlide[] = [
     src: "/neuroscience/scroll-02.png",
     alt: "Visual language colour field with letter and number nodes",
     caption:
-      "Letters and numbers can carry stable colour fields — one person's alphabet may look like a private map.",
+      "Letters and numbers can carry stable colour fields, one person's alphabet may look like a private map.",
   },
   {
     id: "connectivity",
@@ -32,6 +32,6 @@ export const neuroscienceScrollSlides: NeuroscienceScrollSlide[] = [
     src: "/neuroscience/scroll-04.png",
     alt: "Brain with a spectrum of paint and musical notation",
     caption:
-      "Sound, colour, and form may co-activate — synesthesia is not one mechanism, but many possible crossings.",
+      "Sound, colour, and form may co-activate, synesthesia is not one mechanism, but many possible crossings.",
   },
 ];

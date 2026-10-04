@@ -108,7 +108,7 @@ export function SynesthesiaBrainAtlas({
         </h2>
         <p className="synesthesia-brain-atlas__subtitle">
           Select a synesthesia type to highlight proposed regions on a rotatable
-          3D model. Colors follow the pathway order—not a clinical scan.
+          3D model. Colors follow the pathway order, not a clinical scan.
         </p>
       </header>
 
@@ -241,7 +241,7 @@ export function SynesthesiaBrainAtlas({
             </p>
             <p className="synesthesia-brain-atlas__side-copy">
               <strong>{activeFlow.inputName}</strong>
-              {" — "}
+              {", "}
               {firstSentence(activeFlow.inputDescription)}
             </p>
 
@@ -272,7 +272,7 @@ export function SynesthesiaBrainAtlas({
             </p>
             <p className="synesthesia-brain-atlas__side-copy">
               <strong>{activeFlow.outputName}</strong>
-              {" — "}
+              {", "}
               {firstSentence(activeFlow.outputDescription)}
             </p>
 

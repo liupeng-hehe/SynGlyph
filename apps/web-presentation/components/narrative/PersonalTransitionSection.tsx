@@ -1,30 +1,66 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import type { Chapter } from "@/content/synesthesiaContent";
 
 import { PersonalMineReading } from "./PersonalMineReading";
 import { SourcesDrawer } from "./SourcesDrawer";
+import { useSmoothScroll } from "./SmoothScrollProvider";
 import { useSnapSectionWheelSequence } from "./useSnapSectionWheelSequence";
 
 type Props = {
   chapter: Chapter;
 };
 
+const HOLD_STEPS = 3;
+const PARKED_INDEX = 1;
+
 export function PersonalTransitionSection({ chapter }: Props) {
   const sectionRef = useRef<HTMLElement>(null);
   const [panelVisible, setPanelVisible] = useState(false);
   const [switchOn, setSwitchOn] = useState(false);
-  const [holdIndex, setHoldIndex] = useState(0);
+  const [holdIndex, setHoldIndex] = useState(PARKED_INDEX);
+  const edgeHoldRef = useRef({ up: 2, down: 0 });
+  const edgeGateRef = useRef(0);
+  const scroll = useSmoothScroll();
+
+  useEffect(() => {
+    if (holdIndex === PARKED_INDEX) {
+      edgeHoldRef.current = { up: 2, down: 0 };
+    }
+  }, [holdIndex]);
+
+  const consumeMineWheel = useCallback((index: number, event: WheelEvent) => {
+    const now = performance.now();
+    const holdUp = event.deltaY < 0 && index <= 0;
+    const holdDown = event.deltaY > 0 && index >= HOLD_STEPS - 1;
+    if (!holdUp && !holdDown) return false;
+    if (now < edgeGateRef.current) return true;
+
+    const remaining = holdUp ? edgeHoldRef.current.up : edgeHoldRef.current.down;
+    if (remaining <= 0) return false;
+
+    if (holdUp) edgeHoldRef.current.up -= 1;
+    else edgeHoldRef.current.down -= 1;
+    edgeGateRef.current = now + 820;
+
+    const section = sectionRef.current;
+    if (section && Math.abs(section.getBoundingClientRect().top) > 12) {
+      scroll?.scrollTo(section);
+    }
+    return true;
+  }, [scroll]);
 
   useSnapSectionWheelSequence({
     rootRef: sectionRef,
-    itemCount: 1,
+    itemCount: HOLD_STEPS,
     activeIndex: holdIndex,
     onIndexChange: setHoldIndex,
-    stepMs: 700,
-    entryLockMs: 480,
+    stepMs: 820,
+    entryLockMs: 1100,
+    arrivalIndex: () => PARKED_INDEX,
+    consumeWheel: consumeMineWheel,
   });
 
   useEffect(() => {
@@ -50,7 +86,9 @@ export function PersonalTransitionSection({ chapter }: Props) {
       id={chapter.id}
       data-snap-section
       data-wheel-sequence
-      data-wheel-at="end"
+      data-wheel-at={
+        holdIndex <= 0 ? "start" : holdIndex >= HOLD_STEPS - 1 ? "end" : "mid"
+      }
       className={`personal-mine narrative-chapter narrative-chapter--plain min-h-[100svh] scroll-mt-0${switchOn ? " personal-mine--synesthetic" : ""}`}
       aria-labelledby={`${chapter.id}-title`}
     >

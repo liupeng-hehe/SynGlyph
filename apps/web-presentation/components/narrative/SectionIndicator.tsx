@@ -69,12 +69,17 @@ export function SectionIndicator({ items }: Props) {
   }, [activeId]);
 
   const lightNavIds = new Set([
-    "what-is-synesthesia",
     "synesthesia-sparks",
     "synesthetes",
   ]);
   const isLightNav =
-    navMode === "on-dark" ? true : navMode === "on-light" ? false : lightNavIds.has(activeId);
+    activeId === "what-is-synesthesia"
+      ? false
+      : navMode === "on-dark"
+        ? true
+        : navMode === "on-light"
+          ? false
+          : lightNavIds.has(activeId);
 
   if (activeId === "opening") return null;
 

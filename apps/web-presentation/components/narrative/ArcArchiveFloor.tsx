@@ -62,7 +62,7 @@ export function ArcArchiveFloor({
   sectionId,
   sectionClassName = "wordblue-archive",
   ariaLabel,
-  hint = "Scroll to move through the works — the page continues after the last piece.",
+  hint = "Scroll to move through the works, the page continues after the last piece.",
   scrollVhPerItem = SCROLL_VH_PER_ITEM,
 }: Props) {
   const trackRef = useRef<HTMLDivElement>(null);

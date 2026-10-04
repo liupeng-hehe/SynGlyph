@@ -19,6 +19,7 @@ type Options = {
   stepMsForIndex?: (index: number) => number;
   entryLockMs?: number;
   consumeWheel?: (index: number, event: WheelEvent) => boolean;
+  arrivalIndex?: (scrollingDown: boolean, maxIndex: number) => number;
 };
 
 /**
@@ -34,6 +35,7 @@ export function useSnapSectionWheelSequence({
   stepMsForIndex,
   entryLockMs = 0,
   consumeWheel,
+  arrivalIndex,
 }: Options) {
   const smoothScroll = useSmoothScroll();
   const indexRef = useRef(activeIndex);
@@ -42,6 +44,7 @@ export function useSnapSectionWheelSequence({
   const stepMsForIndexRef = useRef(stepMsForIndex);
   const entryLockMsRef = useRef(entryLockMs);
   const consumeWheelRef = useRef(consumeWheel);
+  const arrivalIndexRef = useRef(arrivalIndex);
   const scrollToRef = useRef(smoothScroll?.scrollTo);
   const lockRef = useRef(false);
   const wasAwayRef = useRef(true);
@@ -54,6 +57,7 @@ export function useSnapSectionWheelSequence({
   stepMsForIndexRef.current = stepMsForIndex;
   entryLockMsRef.current = entryLockMs;
   consumeWheelRef.current = consumeWheel;
+  arrivalIndexRef.current = arrivalIndex;
   scrollToRef.current = smoothScroll?.scrollTo;
 
   useEffect(() => {
@@ -112,7 +116,9 @@ export function useSnapSectionWheelSequence({
         entryUntilRef.current = performance.now() + (entryLockMsRef.current ?? 0);
         const scrollingDown = window.scrollY >= lastScrollYRef.current;
         const maxIndex = Math.max(0, countRef.current - 1);
-        const next = scrollingDown ? 0 : maxIndex;
+        const next =
+          arrivalIndexRef.current?.(scrollingDown, maxIndex) ??
+          (scrollingDown ? 0 : maxIndex);
         if (next !== indexRef.current) onIndexChangeRef.current(next);
       }
       lastScrollYRef.current = window.scrollY;

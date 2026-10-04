@@ -75,6 +75,10 @@ export function OpeningEditorialHero({ chapter }: Props) {
               SYNGLYPH
             </h1>
             <SynGlyphDotTitle />
+            <p className="wordblue-hero__lede">
+              <span>Where every letter has a color</span>
+              <span>An interactive journey into synesthesia</span>
+            </p>
           </div>
         </div>
       </div>

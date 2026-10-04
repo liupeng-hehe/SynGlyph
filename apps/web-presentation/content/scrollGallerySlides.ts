@@ -11,7 +11,7 @@ export const synesthesiaSparksSlides: ScrollGallerySlide[] = [
     src: "/collab/page5/spark-2.png",
     alt: "Illustration about synesthesia prevalence",
     caption:
-      "Synesthesia is not as rare as it may sound. One large prevalence study estimated that around 4.4% of the population — roughly 1 in 23 people — may experience some form of synesthesia.",
+      "Synesthesia is not as rare as it may sound. One large prevalence study estimated that around 4.4% of the population, roughly 1 in 23 people, may experience some form of synesthesia.",
   },
   {
     id: "types",
@@ -25,28 +25,28 @@ export const synesthesiaSparksSlides: ScrollGallerySlide[] = [
     src: "/collab/page5/spark-6.png",
     alt: "Illustration about personal consistency in synesthesia",
     caption:
-      "There is no universal color chart. Yet within one person, associations tend to be remarkably stable — which is why researchers test synesthesia through repeated choices.",
+      "There is no universal color chart. Yet within one person, associations tend to be remarkably stable, which is why researchers test synesthesia through repeated choices.",
   },
   {
     id: "families",
     src: "/collab/page5/spark-1.png",
     alt: "Illustration about familial synesthesia",
     caption:
-      "Synesthesia often appears to cluster in families, suggesting a genetic component — though relatives may not share the same type.",
+      "Synesthesia often appears to cluster in families, suggesting a genetic component, though relatives may not share the same type.",
   },
   {
     id: "childhood",
     src: "/collab/page5/spark-4.png",
     alt: "Illustration about childhood color traces",
     caption:
-      "Some synesthetic colors may be shaped by early learning. In grapheme-color synesthesia, letter-color associations can resemble childhood alphabet toys.",
+      "Some synesthetic colors may be shaped by early learning. In grapheme, color synesthesia, letter-color associations can resemble childhood alphabet toys.",
   },
   {
     id: "memory",
     src: "/collab/page5/spark-5.png",
     alt: "Illustration about synesthesia and memory",
     caption:
-      "Synesthesia is often linked to memory, but the relationship is nuanced — less a superpower than an additional system of cues.",
+      "Synesthesia is often linked to memory, but the relationship is nuanced, less a superpower than an additional system of cues.",
   },
 ];
 
@@ -56,7 +56,7 @@ export const synestheteSlides: ScrollGallerySlide[] = [
     src: "/collab/page6/carol-steen.jpg",
     alt: "Carol Steen, Alphabet",
     caption:
-      "Carol Steen translates sound, touch, pain, smell, and taste into visual photisms — making private cross-sensory perception visible.",
+      "Carol Steen translates sound, touch, pain, smell, and taste into visual photisms, making private cross-sensory perception visible.",
   },
   {
     id: "olivier-messiaen",
@@ -84,14 +84,14 @@ export const synestheteSlides: ScrollGallerySlide[] = [
     src: "/collab/page6/marcia-smilack.jpg",
     alt: "Marcia Smilack reflection photography",
     caption:
-      "Marcia Smilack's reflection photography is guided by synesthetic responses to moving water — visual forms that evoke music, texture, or taste.",
+      "Marcia Smilack's reflection photography is guided by synesthetic responses to moving water, visual forms that evoke music, texture, or taste.",
   },
   {
     id: "melissa-mccracken",
     src: "/collab/page6/melissa-mccracken.webp",
     alt: "Melissa McCracken synesthetic painting",
     caption:
-      "Melissa McCracken translates sound–color synesthesia into abstract paintings tied to specific songs.",
+      "Melissa McCracken translates sound, color synesthesia into abstract paintings tied to specific songs.",
   },
   {
     id: "sean-day",

@@ -17,7 +17,7 @@ export const synestheteProfiles: SynestheteProfile[] = [
     type: "Sound, touch, pain, smell, and taste → visual photisms",
     work: "Alphabet",
     description:
-      "Carol Steen's paintings translate her own synesthetic photisms — colors, forms, and movements triggered by sensory experiences — into abstract visual compositions.",
+      "Carol Steen's paintings translate her own synesthetic photisms, colors, forms, and movements triggered by sensory experiences, into abstract visual compositions.",
     image: {
       src: "/collab/page6/carol-steen.jpg",
       alt: "Carol Steen, Alphabet",
@@ -26,7 +26,7 @@ export const synestheteProfiles: SynestheteProfile[] = [
   {
     id: "olivier-messiaen",
     name: "Olivier Messiaen",
-    type: "Sound–color synesthesia",
+    type: "Sound, color synesthesia",
     work: "Harmonic color systems in composition",
     description:
       "Olivier Messiaen experienced musical harmonies as vivid and stable color combinations, shaping both his compositional language and his teaching.",
@@ -38,7 +38,7 @@ export const synestheteProfiles: SynestheteProfile[] = [
   {
     id: "daniel-tammet",
     name: "Daniel Tammet",
-    type: "Number–form, word–color, emotion–color, spatial-form",
+    type: "Number, form, word, color, emotion, color, spatial, form",
     work: "Born on a Blue Day",
     description:
       "Daniel Tammet's memoir presents synesthesia as deeply connected to memory, mathematics, language, and identity.",
@@ -74,10 +74,10 @@ export const synestheteProfiles: SynestheteProfile[] = [
   {
     id: "melissa-mccracken",
     name: "Melissa McCracken",
-    type: "Sound–color synesthesia",
+    type: "Sound, color synesthesia",
     work: "Paintings of specific songs",
     description:
-      "Melissa McCracken translates her sound–color synesthesia into abstract paintings tied to specific songs.",
+      "Melissa McCracken translates her sound, color synesthesia into abstract paintings tied to specific songs.",
     image: {
       src: "/collab/page6/melissa-mccracken.webp",
       alt: "Melissa McCracken synesthetic painting",

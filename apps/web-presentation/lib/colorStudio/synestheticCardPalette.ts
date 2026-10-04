@@ -101,13 +101,13 @@ export function vividHeroRgbForLetter(letter: string): Rgb {
 
 /** Distinct saturated petals for SYNGLYPH, so neighbouring letters do not share a pink. */
 const HERO_FLOWER_HEX: Record<string, string> = {
-  S: "#3DDCFF",
-  Y: "#FFE14A",
-  N: "#FF6A00",
-  G: "#FF3D9A",
-  L: "#7CFF3D",
-  P: "#C44DFF",
-  H: "#FF8A1A",
+  S: "#D0E1F1",
+  Y: "#F7CACE",
+  N: "#BDACD6",
+  G: "#7E2A53",
+  L: "#FDF9FA",
+  P: "#F2AC39",
+  H: "#F2EEE9",
 };
 
 export function vividFlowerRgbForLetter(letter: string): Rgb {

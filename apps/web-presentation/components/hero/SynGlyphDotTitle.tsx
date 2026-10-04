@@ -4,13 +4,23 @@ import { useEffect, useRef } from "react";
 
 import { getLetterMask, insideMask } from "@/lib/colorStudio/letterMaskCache";
 import {
-  vividFlowerRgbForLetter,
+  hexToRgbSafe,
   mixRgb,
   rgbCss,
   type Rgb,
 } from "@/lib/colorStudio/synestheticCardPalette";
 
 const WORD = "SYNGLYPH";
+const HERO_FLOWER_HEX = [
+  "#D0E1F1",
+  "#F7CACE",
+  "#BDACD6",
+  "#7E2A53",
+  "#FDF9FA",
+  "#AFC194",
+  "#F2AC39",
+  "#F2EEE9",
+] as const;
 const INK: Rgb = { r: 206, g: 143, b: 158 };
 const FLOWER_DELAY_MS = 60;
 const FLOWER_LIFE_MS = 1080;
@@ -138,12 +148,12 @@ function buildDots(width: number, height: number): Dot[] {
   const dots: Dot[] = [];
   let cursorX = startX;
 
-  for (const unit of units) {
+  units.forEach((unit, index) => {
     const boxW = unit.drawW * fit;
     const s = unit.scale * fit;
     const ox = cursorX - unit.bounds.minX * s;
     const oy = startY - unit.bounds.minY * s;
-    const flower = vividFlowerRgbForLetter(unit.letter);
+    const flower = hexToRgbSafe(HERO_FLOWER_HEX[index] ?? HERO_FLOWER_HEX[0]);
     const rMax = cell * 0.4;
     const rMin = cell * 0.16;
     let row = 0;
@@ -170,7 +180,7 @@ function buildDots(width: number, height: number): Dot[] {
       row++;
     }
     cursorX += boxW + boxGap;
-  }
+  });
 
   return dots;
 }

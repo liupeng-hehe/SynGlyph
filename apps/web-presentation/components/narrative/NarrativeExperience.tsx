@@ -50,12 +50,13 @@ export function NarrativeExperience() {
                   showBody={false}
                 />
                 <NarrativeBridgeTransition
+                  id="synesthesia-sparks-bridge"
                   variant="dark-to-light"
                   ariaLabel="From synesthesia facts to a personal story"
                 >
                   It is difficult to understand a perspective you have never
-                  experienced. So I want to share my story—and invite you to see
-                  through my eyes.
+                  experienced. So I want to share my story, and I invite you to
+                  see through my eyes.
                 </NarrativeBridgeTransition>
               </>
             ) : chapter.id === "personal-transition" ? (

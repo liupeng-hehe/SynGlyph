@@ -34,7 +34,7 @@ export function NeuralPathDiagram() {
       </h3>
       <p className="neural-path-diagram__lead mt-2 font-body text-sm leading-relaxed">
         Researchers propose several explanations. These diagrams show one
-        possible path — not a single proven mechanism.
+        possible path, not a single proven mechanism.
       </p>
 
       <div
@@ -341,7 +341,7 @@ function ConsistencyDemo() {
         <p className="neural-path-diagram__mini-copy">
           {stable
             ? "Stable associations may suggest a synesthetic pattern."
-            : "Different choices do not necessarily mean the experience is not synesthetic — this demo is educational only."}
+            : "Different choices do not necessarily mean the experience is not synesthetic, this demo is educational only."}
         </p>
       ) : (
         <p className="neural-path-diagram__mini-copy">

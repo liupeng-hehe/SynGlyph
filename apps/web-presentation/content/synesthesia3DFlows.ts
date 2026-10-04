@@ -41,7 +41,7 @@ export const sourceNotes: Record<SourceKey, SourceNote> = {
     index: 1,
     shortLabel: "MIT OECS",
     fullCitation:
-      "MIT Open Encyclopedia of Cognitive Science — Synesthesia",
+      "MIT Open Encyclopedia of Cognitive Science, Synesthesia",
     usedFor:
       "Definition of inducer and concurrent; overview of grapheme-color, sequence-space, and lexical-gustatory synesthesia.",
   },
@@ -211,7 +211,7 @@ export const sourceNotes: Record<SourceKey, SourceNote> = {
     key: "humanConnectomeTractography",
     index: 20,
     shortLabel: "HCP Tractography",
-    fullCitation: "Human Connectome Project — Diffusion Tractography.",
+    fullCitation: "Human Connectome Project, Diffusion Tractography.",
     usedFor:
       "Visual reference for connectome-style neural pathways; not a synesthesia-specific pathway source.",
   },

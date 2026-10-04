@@ -18,8 +18,8 @@ type Props = {
   priority?: boolean;
 };
 
-const TRANSITION_MS = 1200;
-const TRANSITION_PEAK = 0.62;
+const TRANSITION_MS = 1700;
+const TRANSITION_PEAK = 0;
 const MOVE_INTERVAL_MS = 32;
 
 const INTERACTIVE_DAMPING = 0.932;
@@ -96,7 +96,7 @@ function transitionEnvelope(t: number): number {
 }
 
 function transitionMix(t: number): number {
-  return easeInOutCubic(clamp((t - 0.04) / 0.52, 0, 1));
+  return easeInOutCubic(t);
 }
 
 function hash2(x: number, y: number): number {
@@ -615,19 +615,33 @@ export function RippleImage({
           return;
         }
 
-        transitionRef.current = { start: 0, active: false };
-        disposeTexture(texARef.current);
+        if (reduceMotionRef.current) {
+          disposeTexture(texARef.current);
+          disposeTexture(texBRef.current);
+          texARef.current = nextTex;
+          texBRef.current = null;
+          mat.uniforms.uTexA.value = nextTex;
+          mat.uniforms.uTexB.value = nextTex;
+          mat.uniforms.uMix.value = 0;
+          mat.uniforms.uStrength.value = 0;
+          setSoftReveal(true);
+          return;
+        }
+
+        if (transitionRef.current.active && texBRef.current) {
+          disposeTexture(texARef.current);
+          texARef.current = texBRef.current;
+          texBRef.current = null;
+          mat.uniforms.uTexA.value = texARef.current;
+        }
+
         disposeTexture(texBRef.current);
-        texARef.current = nextTex;
-        texBRef.current = null;
-        mat.uniforms.uTexA.value = nextTex;
+        texBRef.current = nextTex;
         mat.uniforms.uTexB.value = nextTex;
         mat.uniforms.uMix.value = 0;
         mat.uniforms.uStrength.value = 0;
-        setSoftReveal(false);
-        revealFrame = requestAnimationFrame(() => {
-          revealFrame = requestAnimationFrame(() => setSoftReveal(true));
-        });
+        transitionRef.current = { start: performance.now(), active: true };
+        setSoftReveal(true);
       } catch {
         if (!cancelled) setUseGl(false);
       }

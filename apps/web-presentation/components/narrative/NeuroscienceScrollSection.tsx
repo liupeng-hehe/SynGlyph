@@ -6,6 +6,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react
 import type { Chapter } from "@/content/synesthesiaContent";
 import type { ScrollGallerySlide } from "@/content/scrollGallerySlides";
 
+import { adjacentSnapSection } from "./sectionScrollUtils";
 import { useSmoothScroll } from "./SmoothScrollProvider";
 import { SourcesDrawer } from "./SourcesDrawer";
 
@@ -282,6 +283,19 @@ function figureIsPastDarkLine(
   return yFromTop <= DARK_LINE_FROM_TOP;
 }
 
+function figureHasMovedOffTop(
+  el: HTMLElement | null,
+  viewportEl?: HTMLElement | null,
+): boolean {
+  if (!el) return false;
+  const rect = el.getBoundingClientRect();
+  if (rect.width <= 0 || rect.height <= 0) return false;
+  const view = viewportEl?.getBoundingClientRect();
+  const top = view?.top ?? 0;
+  const height = view?.height ?? window.innerHeight;
+  return rect.bottom < top + height * 0.14;
+}
+
 function latestSlideNearestCenter(
   figures: Array<HTMLElement | null>,
   previousIndex: number,
@@ -529,6 +543,10 @@ export function ScrollGallerySection({
   const [captionIndex, setCaptionIndex] = useState(-1);
   const [captionHidden, setCaptionHidden] = useState(true);
   const [lastImageDark, setLastImageDark] = useState(false);
+  const lastImageGoneRef = useRef(false);
+  const handedOffRef = useRef(false);
+  const scrollDirRef = useRef<1 | -1>(1);
+  const prevScrollYRef = useRef(0);
   const [leaveFade, setLeaveFade] = useState<number[]>([]);
   const [luminance, setLuminance] = useState<number[]>([]);
   const figureRefs = useRef<Array<HTMLElement | null>>([]);
@@ -569,7 +587,36 @@ export function ScrollGallerySection({
         ? figureIsPastDarkLineHorizontal(figureRefs.current[slideCount - 1], viewport)
         : figureIsPastDarkLine(figureRefs.current[slideCount - 1], viewport),
     );
-  }, [portraitLane, slideCount]);
+
+    const lastGone = figureHasMovedOffTop(
+      figureRefs.current[slideCount - 1],
+      viewport,
+    );
+    const track = trackRef.current;
+    if (lastGone) {
+      track?.setAttribute("data-gallery-complete", "");
+      if (
+        themeClass.includes("neuro-scroll-section--sparks") &&
+        !lastImageGoneRef.current &&
+        scrollDirRef.current > 0 &&
+        !handedOffRef.current &&
+        !smoothScroll?.isProgrammatic()
+      ) {
+        const section = track?.closest<HTMLElement>("[data-snap-section]");
+        const next = section ? adjacentSnapSection(section, 1) : null;
+        if (next) {
+          handedOffRef.current = true;
+          lastImageGoneRef.current = true;
+          smoothScroll?.scrollTo(next);
+        }
+      }
+      lastImageGoneRef.current = true;
+    } else {
+      track?.removeAttribute("data-gallery-complete");
+      lastImageGoneRef.current = false;
+      handedOffRef.current = false;
+    }
+  }, [portraitLane, slideCount, smoothScroll, themeClass]);
 
   const syncFigureVisuals = useCallback(() => {
     const viewport = stickyRef.current;
@@ -758,6 +805,7 @@ export function ScrollGallerySection({
     const unsubscribe = smoothScroll?.subscribeScroll(() => {
       updateFromScroll();
       ensureProgressAnim();
+      syncCaptionToLightLine();
     });
     window.addEventListener("resize", updateFromScroll);
     window.addEventListener("resize", measureChain);
@@ -845,6 +893,18 @@ export function ScrollGallerySection({
     syncCaptionToLightLine,
     syncFigureVisuals,
   ]);
+
+  useEffect(() => {
+    prevScrollYRef.current = window.scrollY;
+    const unsubscribe = smoothScroll?.subscribeScroll(() => {
+      const y = window.scrollY;
+      if (Math.abs(y - prevScrollYRef.current) > 1) {
+        scrollDirRef.current = y > prevScrollYRef.current ? 1 : -1;
+      }
+      prevScrollYRef.current = y;
+    });
+    return () => unsubscribe?.();
+  }, [smoothScroll]);
 
   const caption = captionIndex >= 0 ? slides[captionIndex]?.caption ?? "" : "";
   const isSparks = themeClass.includes("neuro-scroll-section--sparks");
@@ -968,10 +1028,6 @@ export function ScrollGallerySection({
             aria-live="polite"
           >
             {caption}
-          </p>
-
-          <p className="neuro-scroll-section__hint m-0 font-body">
-            Scroll to move through the sequence
           </p>
         </div>
       </div>
