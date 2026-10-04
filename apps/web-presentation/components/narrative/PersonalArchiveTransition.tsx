@@ -41,6 +41,9 @@ const WASH = {
   },
 } as const;
 
+type WashBg = (typeof WASH)[BridgeVariant]["fromBg"] | (typeof WASH)[BridgeVariant]["toBg"];
+type WashInk = (typeof WASH)[BridgeVariant]["fromInk"] | (typeof WASH)[BridgeVariant]["toInk"];
+
 export function NarrativeBridgeTransition({
   id,
   children,
@@ -59,8 +62,8 @@ export function NarrativeBridgeTransition({
   const [state, setState] = useState<TransitionState>("before");
   const [holdIndex, setHoldIndex] = useState(0);
   const [allowFade, setAllowFade] = useState(false);
-  const [bg, setBg] = useState(palette.fromBg);
-  const [ink, setInk] = useState(palette.fromInk);
+  const [bg, setBg] = useState<WashBg>(palette.fromBg);
+  const [ink, setInk] = useState<WashInk>(palette.fromInk);
 
   const consumeBridgeWheel = useCallback(() => {
     return performance.now() < washUntilRef.current;

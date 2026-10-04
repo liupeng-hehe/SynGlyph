@@ -105,7 +105,7 @@ export function PersonalTransitionSection({ chapter }: Props) {
           <div className="personal-mine__paragraphs">
             <PersonalMineReading paragraphs={chapter.body} active={switchOn} />
           </div>
-          {chapter.sourceKeys.length > 0 ? (
+          {chapter.sourceKeys && chapter.sourceKeys.length > 0 ? (
             <div className="personal-mine__sources">
               <SourcesDrawer sourceKeys={chapter.sourceKeys} />
             </div>
