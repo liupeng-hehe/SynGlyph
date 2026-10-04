@@ -866,6 +866,34 @@ body {
   transition: none;
 }
 
+.join-float__filter-preview {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.join-float__filter-preview-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.join-float:has(.join-float__filter-preview) .join-float__filter-wheel {
+  opacity: 0;
+}
+
+.join-float:has(.join-float__filter-preview) .join-float__copy {
+  z-index: 6;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .join-float__filter-preview {
+    display: none;
+  }
+}
+
 .join-float__opening-copy {
   max-width: 50rem;
   margin-inline: auto !important;
@@ -2572,15 +2600,13 @@ body {
   font-display: swap;
 }
 
-.opening-prose {
+.opening-prose,
+.opening-prose.narrative-chapter {
   --prose-ink: #ea9dac;
   position: relative;
-  background: var(--bg);
+  background: #f5f2eb;
   color: var(--prose-ink);
-}
-
-.opening-prose__track {
-  position: relative;
+  content-visibility: visible;
 }
 
 .opening-prose__defs {
@@ -2594,60 +2620,96 @@ body {
   opacity: 0.01;
 }
 
-.opening-prose__sticky {
-  position: sticky;
-  top: 0;
-  overflow: visible;
-  height: 100svh;
-  min-height: 100svh;
-  box-sizing: border-box;
-  padding: clamp(1.25rem, 5vw, 4.5rem);
-}
-
 .opening-prose__stage {
   position: relative;
-  width: 100%;
   height: 100%;
+  box-sizing: border-box;
+  padding: clamp(0.85rem, 3.2vh, 2.4rem) clamp(1.25rem, 5vw, 4.5rem);
 }
 
-.opening-prose__para {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  z-index: 1;
+.opening-prose__window {
+  position: relative;
+  height: 100%;
+  overflow: hidden;
+  mask-image: linear-gradient(
+    180deg,
+    transparent 0%,
+    #000 5%,
+    #000 95%,
+    transparent 100%
+  );
+}
+
+.opening-prose__flow {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.32em;
   width: min(100%, 28ch);
+  margin: 0 auto;
   font-family: var(--font-prose), "Times New Roman", Times, serif;
   font-size: clamp(1.35rem, 4.2vw, 2.85rem);
   font-weight: 300;
   text-align: center;
-  transform: translate3d(-50%, -50%, 0);
+  gap: 0.14em;
+  will-change: transform;
   backface-visibility: hidden;
-  contain: layout style;
   pointer-events: none;
-  will-change: transform, opacity;
 }
 
-.opening-prose__para--times {
+.opening-prose__flow.is-ready {
+  transition: transform 0.72s cubic-bezier(0.16, 0.84, 0.32, 1);
+}
+
+.opening-prose__para-block {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  gap: 0.14em;
+}
+
+.opening-prose__para-block.is-current {
+  display: flex;
+}
+
+.opening-prose__para-block.is-current.is-pending {
+  visibility: hidden;
+}
+
+.opening-prose__para-block--times {
   font-family: "TimesNow-SemiLight", "Times Now SemiLight", "Times Now", var(--font-prose), "Times New Roman", Times, serif;
+  font-size: 0.9em;
 }
 
 .opening-prose__line {
   font-family: inherit;
   font-size: inherit;
   font-weight: inherit;
-  line-height: 1.22;
+  line-height: 1.12;
   letter-spacing: -0.012em;
   width: 100%;
   color: var(--prose-ink);
   text-align: center;
   overflow: visible;
   opacity: 0;
-  padding: 0.04em 0.08em;
+  padding: 0.02em 0.08em;
   transform-origin: center;
+}
+
+.opening-prose__line:not(.is-in) {
+  height: 0;
+  padding: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.opening-prose__line.is-in {
+  opacity: 1;
+}
+
+.opening-prose__line--times,
+.opening-prose__para--times {
+  font-family: "TimesNow-SemiLight", "Times Now SemiLight", "Times Now", var(--font-prose), "Times New Roman", Times, serif;
 }
 
 .opening-prose__mine-word,
@@ -2662,45 +2724,36 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .opening-prose__sticky {
-    position: relative;
+  .opening-prose__window {
     overflow: auto;
-    height: auto;
-    min-height: 100svh;
     mask-image: none;
-    display: flex;
-    align-items: center;
   }
 
-  .opening-prose__stage {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 2.4rem;
-  }
-
-  .opening-prose__para {
-    position: relative;
-    left: auto;
-    top: auto;
+  .opening-prose__flow,
+  .opening-prose__flow.is-ready {
     transform: none !important;
-    opacity: 1 !important;
+    transition: none;
+    min-height: 100%;
+    justify-content: center;
+  }
+
+  .opening-prose__para-block {
+    display: flex;
+    margin-bottom: 1.6em;
   }
 
   .opening-prose__line {
     opacity: 1 !important;
-    height: auto !important;
     filter: none !important;
   }
 }
 
 @media (max-width: 699px) {
-  .opening-prose__sticky {
+  .opening-prose__stage {
     padding: clamp(1rem, 5vw, 1.5rem);
   }
 
-  .opening-prose__para {
+  .opening-prose__flow {
     width: min(100%, 22ch);
   }
 }

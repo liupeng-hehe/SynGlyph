@@ -17,6 +17,8 @@ type Options = {
   onIndexChange: (index: number) => void;
   stepMs?: number;
   stepMsForIndex?: (index: number) => number;
+  entryLockMs?: number;
+  consumeWheel?: (index: number, event: WheelEvent) => boolean;
 };
 
 /**
@@ -30,21 +32,28 @@ export function useSnapSectionWheelSequence({
   onIndexChange,
   stepMs = 420,
   stepMsForIndex,
+  entryLockMs = 0,
+  consumeWheel,
 }: Options) {
   const smoothScroll = useSmoothScroll();
   const indexRef = useRef(activeIndex);
   const countRef = useRef(itemCount);
   const onIndexChangeRef = useRef(onIndexChange);
   const stepMsForIndexRef = useRef(stepMsForIndex);
+  const entryLockMsRef = useRef(entryLockMs);
+  const consumeWheelRef = useRef(consumeWheel);
   const scrollToRef = useRef(smoothScroll?.scrollTo);
   const lockRef = useRef(false);
   const wasAwayRef = useRef(true);
   const lastScrollYRef = useRef(0);
+  const entryUntilRef = useRef(0);
 
   indexRef.current = activeIndex;
   countRef.current = itemCount;
   onIndexChangeRef.current = onIndexChange;
   stepMsForIndexRef.current = stepMsForIndex;
+  entryLockMsRef.current = entryLockMs;
+  consumeWheelRef.current = consumeWheel;
   scrollToRef.current = smoothScroll?.scrollTo;
 
   useEffect(() => {
@@ -69,6 +78,8 @@ export function useSnapSectionWheelSequence({
       event.stopPropagation();
       event.stopImmediatePropagation();
 
+      if (performance.now() < entryUntilRef.current) return;
+      if (consumeWheelRef.current?.(index, event)) return;
       if (lockRef.current) return;
       lockRef.current = true;
 
@@ -98,6 +109,7 @@ export function useSnapSectionWheelSequence({
         wasAwayRef.current = true;
       } else if (isSectionWheelActive(section) && wasAwayRef.current) {
         wasAwayRef.current = false;
+        entryUntilRef.current = performance.now() + (entryLockMsRef.current ?? 0);
         const scrollingDown = window.scrollY >= lastScrollYRef.current;
         const maxIndex = Math.max(0, countRef.current - 1);
         const next = scrollingDown ? 0 : maxIndex;

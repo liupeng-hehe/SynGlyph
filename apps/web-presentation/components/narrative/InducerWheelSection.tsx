@@ -14,6 +14,7 @@ import {
 import type { Chapter } from "@/content/synesthesiaContent";
 import { inducerPairImages, type InducerPairImage } from "@/content/inducerPairImages";
 
+import { FilterPreviewSnake } from "./FilterPreviewSnake";
 import { useSnapSectionWheelSequence } from "./useSnapSectionWheelSequence";
 
 type Props = {
@@ -49,6 +50,7 @@ const POST_ROLL = 3;
 const PHOTO_LAYOUT_VERSION = 3;
 const FILTER_STAGE_BACKGROUND = "#f5f2eb";
 const FILTER_WHEEL_STEP_DEG = 360 / (inducerPairImages.length + 1);
+const PREVIEW_WHEEL_SCALE = 2600;
 const OPENING_COPY =
   "Here is where the senses begin to cross. Each color is a filter, turning something seen into something felt.";
 
@@ -215,9 +217,12 @@ export function InducerWheelSection({ chapter }: Props) {
   const [activeIndex, setActiveIndex] = useState(0);
   const [direction, setDirection] = useState<1 | -1>(1);
   const [stageVisible, setStageVisible] = useState(false);
+  const [previewProgress, setPreviewProgress] = useState(0);
   const activeIndexRef = useRef(activeIndex);
+  const previewProgressRef = useRef(0);
   const wasIntersectingRef = useRef(false);
   activeIndexRef.current = activeIndex;
+  previewProgressRef.current = previewProgress;
   const maxIndex = Math.max(0, frames.length - 1);
   const frame = frames[activeIndex] ?? frames[0];
   const pair = frame ? inducerPairImages[frame.pairIndex] : undefined;
@@ -228,12 +233,36 @@ export function InducerWheelSection({ chapter }: Props) {
     (index: number) => {
       const nextIndex = Math.max(0, Math.min(maxIndex, index));
       if (nextIndex !== activeIndexRef.current) {
+        const nextFrame = frames[nextIndex];
+        const prevFrame = frames[activeIndexRef.current];
+        if (nextFrame?.phase === "opening" && prevFrame?.phase !== "opening") {
+          const rewind = nextIndex < activeIndexRef.current;
+          previewProgressRef.current = rewind ? 1 : 0;
+          setPreviewProgress(rewind ? 1 : 0);
+        }
         setDirection(nextIndex > activeIndexRef.current ? 1 : -1);
         activeIndexRef.current = nextIndex;
         setActiveIndex(nextIndex);
       }
     },
-    [maxIndex],
+    [frames, maxIndex],
+  );
+
+  const consumeOpeningWheel = useCallback(
+    (index: number, event: WheelEvent) => {
+      if (frames[index]?.phase !== "opening") return false;
+      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return false;
+
+      const prev = previewProgressRef.current;
+      if (event.deltaY > 0 && prev >= 1) return false;
+      if (event.deltaY < 0 && prev <= 0) return false;
+
+      const next = Math.min(1, Math.max(0, prev + event.deltaY / PREVIEW_WHEEL_SCALE));
+      previewProgressRef.current = next;
+      setPreviewProgress(next);
+      return true;
+    },
+    [frames],
   );
 
   useSnapSectionWheelSequence({
@@ -242,6 +271,8 @@ export function InducerWheelSection({ chapter }: Props) {
     activeIndex,
     onIndexChange: setFrameIndex,
     stepMs: 280,
+    entryLockMs: 480,
+    consumeWheel: consumeOpeningWheel,
     stepMsForIndex: (index) =>
       frames[index]?.phase === "opening-transition"
         ? 2100
@@ -263,7 +294,10 @@ export function InducerWheelSection({ chapter }: Props) {
         const isIntersecting = entry.isIntersecting;
 
         if (isIntersecting && !wasIntersectingRef.current) {
-          setFrameIndex(entry.boundingClientRect.top >= 0 ? 0 : maxIndex);
+          const fromTop = entry.boundingClientRect.top >= 0;
+          previewProgressRef.current = fromTop ? 0 : 1;
+          setPreviewProgress(fromTop ? 0 : 1);
+          setFrameIndex(fromTop ? 0 : maxIndex);
         }
 
         wasIntersectingRef.current = isIntersecting;
@@ -285,6 +319,29 @@ export function InducerWheelSection({ chapter }: Props) {
   }, []);
 
   const handleKey = (event: KeyboardEvent<HTMLDivElement>) => {
+    const opening = frames[activeIndex]?.phase === "opening";
+    if (opening && (event.key === "ArrowDown" || event.key === "ArrowRight")) {
+      event.preventDefault();
+      if (previewProgressRef.current >= 1) {
+        setFrameIndex(Math.min(maxIndex, activeIndex + 1));
+        return;
+      }
+      const next = Math.min(1, previewProgressRef.current + 0.08);
+      previewProgressRef.current = next;
+      setPreviewProgress(next);
+      return;
+    }
+    if (opening && (event.key === "ArrowUp" || event.key === "ArrowLeft")) {
+      event.preventDefault();
+      if (previewProgressRef.current <= 0) {
+        setFrameIndex(Math.max(0, activeIndex - 1));
+        return;
+      }
+      const next = Math.max(0, previewProgressRef.current - 0.08);
+      previewProgressRef.current = next;
+      setPreviewProgress(next);
+      return;
+    }
     if (event.key === "ArrowDown" || event.key === "ArrowRight") {
       event.preventDefault();
       setFrameIndex(Math.min(maxIndex, activeIndex + 1));
@@ -377,6 +434,8 @@ export function InducerWheelSection({ chapter }: Props) {
         tabIndex={0}
         onKeyDown={handleKey}
       >
+        {isOpening && stageVisible ? <FilterPreviewSnake progress={previewProgress} /> : null}
+
         <div
           className={`join-float__filter-wheel${isWheelStep ? " is-stepping" : ""}${isOpeningTransition ? " is-opening-step" : ""}`}
           aria-hidden="true"

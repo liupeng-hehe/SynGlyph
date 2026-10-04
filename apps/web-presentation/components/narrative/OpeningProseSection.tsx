@@ -1,16 +1,28 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import type { Chapter } from "@/content/synesthesiaContent";
 
 import { hexToLab, labToHex } from "@/lib/labColor";
 import { wordsForText } from "@/lib/paletteFieldV1";
 
-import { useSmoothScroll } from "./SmoothScrollProvider";
+import { useSnapSectionWheelSequence } from "./useSnapSectionWheelSequence";
 
 const PROSE_PINK = "#ea9dac";
 const MINE_FULL_FROM = "Another layer of experience";
+const GOO_MS = 1680;
+const FLOW_MS = 720;
+const EXIT_LOCK_MS = 1250;
+const HOLD_MS = 1200;
+const FIRST_PARA_HOLD_MS = 2240;
+const LINE_STEP_MS = 760;
+const BLUR_START = 13.5;
+const BLUR_HOLD = 8.6;
+const GOO_AMP = 34;
+const GOO_OFF = -13;
+const ARRIVE_END = 0.22;
+const RESOLVE_START = 0.62;
 
 function mixHex(from: string, to: string, t: number): string {
   const a = hexToLab(from);
@@ -84,20 +96,14 @@ type Props = {
   chapter: Chapter;
 };
 
-const SCROLL_VH_PER_LINE = 108;
-const EXIT_UNITS = 1.45;
-const EXIT_LIFT_VH = 34;
-const BLUR_START = 8.2;
-const BLUR_HOLD = 5.2;
-const GOO_AMP = 20;
-const GOO_OFF = -8;
-/** Blob forms, then holds as liquify for most of the line. */
-const ARRIVE_END = 0.16;
-const RESOLVE_START = 0.64;
-/** Goo (visual 0–0.68) occupies most of the line's scroll. */
-const GOO_VISUAL = 0.68;
-const GOO_SCROLL = 0.76;
-const REST_TRANSFORM = "translate3d(-50%, -50%, 0)";
+type FlowLine = {
+  text: string;
+  paragraph: number;
+  localIndex: number;
+  globalIndex: number;
+  paraStart: boolean;
+  isTitle: boolean;
+};
 
 function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
@@ -111,37 +117,11 @@ function easeOut(t: number): number {
   return 1 - (1 - t) ** 3;
 }
 
-function easeIn(t: number): number {
-  return t * t;
-}
-
-function stretchGoo(frac: number): number {
-  if (frac < GOO_SCROLL) {
-    return (frac / GOO_SCROLL) * GOO_VISUAL;
-  }
-  return GOO_VISUAL + ((frac - GOO_SCROLL) / (1 - GOO_SCROLL)) * (1 - GOO_VISUAL);
-}
-
-function smoothstep(edge0: number, edge1: number, x: number): number {
-  const t = clamp((x - edge0) / (edge1 - edge0), 0, 1);
+function easeResolve(t: number): number {
   return t * t * (3 - 2 * t);
 }
 
-type ProseLine = {
-  text: string;
-  paragraph: number;
-  globalIndex: number;
-};
-
-type ProseParagraph = {
-  index: number;
-  lines: ProseLine[];
-  revealStart: number;
-  revealEnd: number;
-  exitEnd: number;
-};
-
-function sourceParagraphs(chapter: Chapter): ProseParagraph[] {
+function sourceLines(chapter: Chapter): FlowLine[] {
   const firstRest = (chapter.body[0] ?? "")
     .split("\n")
     .map((line) => line.trim())
@@ -157,175 +137,252 @@ function sourceParagraphs(chapter: Chapter): ProseParagraph[] {
     ),
   ].filter((group) => group.length > 0);
 
-  let cursor = 0;
-  let globalIndex = 0;
-
-  return grouped.map((texts, index) => {
-    const lines = texts.map((text) => {
-      const line = { text, paragraph: index, globalIndex };
-      globalIndex += 1;
-      return line;
+  const lines: FlowLine[] = [];
+  grouped.forEach((texts, paragraph) => {
+    texts.forEach((text, localIndex) => {
+      lines.push({
+        text,
+        paragraph,
+        localIndex,
+        globalIndex: lines.length,
+        paraStart: localIndex === 0,
+        isTitle: paragraph === 0 && localIndex === 0,
+      });
     });
-    const revealStart = cursor;
-    const revealEnd = cursor + lines.length;
-    const exitEnd = index === grouped.length - 1 ? revealEnd : revealEnd + EXIT_UNITS;
-    cursor = exitEnd;
-    return { index, lines, revealStart, revealEnd, exitEnd };
   });
+  return lines;
 }
 
 function matrixValues(amp: number, off: number): string {
   return `1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 ${amp} ${off}`;
 }
 
-export function OpeningProseSection({ chapter }: Props) {
-  const paragraphs = useMemo(() => sourceParagraphs(chapter), [chapter]);
-  const lineCount = paragraphs.reduce((sum, paragraph) => sum + paragraph.lines.length, 0);
-  const totalUnits = paragraphs[paragraphs.length - 1]?.exitEnd ?? 1;
-  const [reduceMotion, setReduceMotion] = useState(false);
+function gooAt(t: number): { std: number; amp: number; off: number } {
+  if (t < ARRIVE_END) {
+    return {
+      std: lerp(BLUR_START, BLUR_HOLD, easeOut(t / ARRIVE_END)),
+      amp: GOO_AMP,
+      off: GOO_OFF,
+    };
+  }
+  if (t < RESOLVE_START) {
+    return { std: BLUR_HOLD, amp: GOO_AMP, off: GOO_OFF };
+  }
+  const resolve = easeResolve((t - RESOLVE_START) / (1 - RESOLVE_START));
+  return {
+    std: lerp(BLUR_HOLD, 0, resolve),
+    amp: lerp(GOO_AMP, 1, resolve),
+    off: lerp(GOO_OFF, 0, resolve),
+  };
+}
 
-  const trackRef = useRef<HTMLDivElement>(null);
-  const paraRefs = useRef<Array<HTMLDivElement | null>>([]);
+export function OpeningProseSection({ chapter }: Props) {
+  const lines = useMemo(() => sourceLines(chapter), [chapter]);
+  const paragraphGroups = useMemo(() => {
+    const groups: Array<{ paragraph: number; lines: FlowLine[] }> = [];
+    for (const line of lines) {
+      const last = groups[groups.length - 1];
+      if (!last || last.paragraph !== line.paragraph) {
+        groups.push({ paragraph: line.paragraph, lines: [line] });
+      } else {
+        last.lines.push(line);
+      }
+    }
+    return groups;
+  }, [lines]);
+  const minePlans = useMemo(() => {
+    const plans = new Map<number, ReturnType<typeof mineRevealPlan>>();
+    for (const group of paragraphGroups) {
+      if (group.paragraph === 1) {
+        plans.set(group.paragraph, mineRevealPlan(group.lines.map((line) => line.text)));
+      }
+    }
+    return plans;
+  }, [paragraphGroups]);
+
+  const rootRef = useRef<HTMLDivElement>(null);
+  const stageRef = useRef<HTMLDivElement>(null);
+  const flowRef = useRef<HTMLDivElement>(null);
   const lineRefs = useRef<Array<HTMLElement | null>>([]);
   const blurRefs = useRef<Array<SVGFEGaussianBlurElement | null>>([]);
   const matrixRefs = useRef<Array<SVGFEColorMatrixElement | null>>([]);
-  const targetProgressRef = useRef(0);
-  const revealedRef = useRef<boolean[]>([]);
-  const paraStyleRef = useRef<Array<{ opacity: string; transform: string; hidden: boolean }>>([]);
-  const lineShownRef = useRef<Array<boolean | undefined>>([]);
-  const lineGooRef = useRef<boolean[]>([]);
-  const smoothScroll = useSmoothScroll();
+  const gooStartedRef = useRef<number[]>([]);
+  const gooRafRef = useRef(0);
+  const flowReadyRef = useRef(false);
+  const activeIndexRef = useRef(0);
+  const paragraphStepRef = useRef(false);
+  const enterFromExitRef = useRef(false);
+  const snapNextRef = useRef(false);
+  const isExitingRef = useRef(false);
+  const pendingIndexRef = useRef<number | null>(null);
+  const exitTimerRef = useRef(0);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [exitingParagraph, setExitingParagraph] = useState<number | null>(null);
+  const [revealIncoming, setRevealIncoming] = useState(true);
+  const [flowReady, setFlowReady] = useState(false);
+  const [reduceMotion, setReduceMotion] = useState(false);
+  const maxIndex = Math.max(0, lines.length - 1);
+  const activeLine = lines[activeIndex];
+  const visibleParagraph = exitingParagraph ?? activeLine?.paragraph ?? 0;
 
-  const setLineShown = useCallback((node: HTMLElement, index: number, visible: boolean) => {
-    if (lineShownRef.current[index] === visible) return;
-    lineShownRef.current[index] = visible;
-    node.dataset.shown = visible ? "1" : "0";
-    if (visible) {
-      node.style.opacity = "1";
-      node.style.height = "";
-      node.style.overflow = "visible";
-      node.style.padding = "";
-      node.setAttribute("aria-hidden", "false");
-      return;
-    }
-    node.style.opacity = "0";
-    node.style.height = "0";
-    node.style.overflow = "hidden";
-    node.style.padding = "0";
-    node.style.filter = "none";
-    node.setAttribute("aria-hidden", "true");
-  }, []);
+  const setFrameIndex = useCallback(
+    (index: number) => {
+      const next = Math.max(0, Math.min(maxIndex, index));
+      const fromLine = lines[activeIndexRef.current];
+      const toLine = lines[next];
+      const crossed = Boolean(fromLine && toLine && fromLine.paragraph !== toLine.paragraph);
+      const crossingForward =
+        !reduceMotion && Boolean(fromLine && toLine && toLine.paragraph > fromLine.paragraph);
 
-  const clearLineGoo = useCallback((index: number, node: HTMLElement) => {
-    if (lineGooRef.current[index] === false) return;
-    lineGooRef.current[index] = false;
-    node.style.filter = "none";
-    blurRefs.current[index]?.setAttribute("stdDeviation", "0");
-    matrixRefs.current[index]?.setAttribute("values", matrixValues(1, 0));
-  }, []);
+      if (isExitingRef.current) {
+        paragraphStepRef.current = true;
+        return;
+      }
 
-  const applyFrame = useCallback(
-    (progress: number) => {
-      const pos = progress * totalUnits;
+      paragraphStepRef.current = crossed;
 
-      paragraphs.forEach((paragraph, paragraphIndex) => {
-        const group = paraRefs.current[paragraphIndex];
-        if (!group) return;
+      if (crossingForward && fromLine) {
+        isExitingRef.current = true;
+        pendingIndexRef.current = next;
+        setRevealIncoming(false);
+        setExitingParagraph(fromLine.paragraph);
+        return;
+      }
 
-        let opacity = "0";
-        let transform = REST_TRANSFORM;
-        let hidden = true;
-
-        if (pos < paragraph.revealStart) {
-          transform = REST_TRANSFORM;
-        } else if (pos <= paragraph.revealEnd) {
-          opacity = "1";
-          hidden = false;
-        } else if (pos < paragraph.exitEnd) {
-          const leave = clamp((pos - paragraph.revealEnd) / EXIT_UNITS, 0, 1);
-          opacity = String(1 - smoothstep(0.22, 1, leave));
-          transform = `${REST_TRANSFORM} translate3d(0, ${(-leave * EXIT_LIFT_VH).toFixed(3)}vh, 0)`;
-          hidden = leave > 0.94;
-        } else {
-          transform = `${REST_TRANSFORM} translate3d(0, ${-EXIT_LIFT_VH}vh, 0)`;
-        }
-
-        const prev = paraStyleRef.current[paragraphIndex];
-        if (!prev || prev.opacity !== opacity) group.style.opacity = opacity;
-        if (!prev || prev.transform !== transform) group.style.transform = transform;
-        if (!prev || prev.hidden !== hidden) group.setAttribute("aria-hidden", hidden ? "true" : "false");
-        paraStyleRef.current[paragraphIndex] = { opacity, transform, hidden };
-
-        const revealing = pos >= paragraph.revealStart && pos <= paragraph.revealEnd;
-        if (!revealing) {
-          const showLines = pos > paragraph.revealStart && pos < paragraph.exitEnd;
-          paragraph.lines.forEach((line) => {
-            const node = lineRefs.current[line.globalIndex];
-            if (!node) return;
-            setLineShown(node, line.globalIndex, showLines);
-            if (showLines) clearLineGoo(line.globalIndex, node);
-          });
-          return;
-        }
-
-        const local = pos - paragraph.revealStart;
-        const activeLocal = clamp(Math.floor(local), 0, paragraph.lines.length - 1);
-        const frac = local - Math.floor(local);
-
-        paragraph.lines.forEach((line, localIndex) => {
-          const node = lineRefs.current[line.globalIndex];
-          if (!node) return;
-
-          if (localIndex > activeLocal) {
-            setLineShown(node, line.globalIndex, false);
-            return;
-          }
-
-          setLineShown(node, line.globalIndex, true);
-
-          if (localIndex < activeLocal || frac >= 0.995) {
-            revealedRef.current[line.globalIndex] = true;
-          }
-
-          if (revealedRef.current[line.globalIndex]) {
-            clearLineGoo(line.globalIndex, node);
-            return;
-          }
-
-          const visual = stretchGoo(frac);
-          let std: number;
-          if (visual < ARRIVE_END) {
-            std = lerp(BLUR_START, BLUR_HOLD, easeOut(visual / ARRIVE_END));
-          } else if (visual < RESOLVE_START) {
-            std = BLUR_HOLD;
-          } else {
-            std = lerp(BLUR_HOLD, 0, easeIn((visual - RESOLVE_START) / (1 - RESOLVE_START)));
-          }
-          const counters = visual < RESOLVE_START ? 0 : easeIn((visual - RESOLVE_START) / (1 - RESOLVE_START));
-          lineGooRef.current[line.globalIndex] = true;
-          blurRefs.current[line.globalIndex]?.setAttribute("stdDeviation", std.toFixed(2));
-          matrixRefs.current[line.globalIndex]?.setAttribute(
-            "values",
-            matrixValues(lerp(GOO_AMP, 1, counters), lerp(GOO_OFF, 0, counters)),
-          );
-          node.style.filter = `url(#prose-goo-${line.globalIndex})`;
-        });
-      });
+      if (!reduceMotion && fromLine && toLine && toLine.paragraph < fromLine.paragraph) {
+        enterFromExitRef.current = true;
+      }
+      isExitingRef.current = false;
+      pendingIndexRef.current = null;
+      setExitingParagraph(null);
+      activeIndexRef.current = next;
+      setActiveIndex(next);
     },
-    [clearLineGoo, paragraphs, setLineShown, totalUnits],
+    [lines, maxIndex, reduceMotion],
   );
 
-  const updateFromScroll = useCallback(() => {
-    const track = trackRef.current;
-    if (!track) return;
-    const scrollable = track.offsetHeight - window.innerHeight;
-    if (scrollable <= 0) {
-      targetProgressRef.current = 1;
+  const isLastLineOfParagraph = useCallback((index: number) => {
+    const line = lines[index];
+    const next = lines[index + 1];
+    return Boolean(line && (!next || next.paragraph !== line.paragraph));
+  }, [lines]);
+
+  useSnapSectionWheelSequence({
+    rootRef,
+    itemCount: lines.length,
+    activeIndex,
+    onIndexChange: setFrameIndex,
+    stepMs: LINE_STEP_MS,
+    stepMsForIndex: (nextIndex) => {
+      if (paragraphStepRef.current) return EXIT_LOCK_MS;
+      if (isLastLineOfParagraph(nextIndex)) {
+        return lines[nextIndex]?.paragraph === 0 ? FIRST_PARA_HOLD_MS : HOLD_MS;
+      }
+      return LINE_STEP_MS;
+    },
+  });
+
+  const applyGoo = useCallback((index: number, t: number) => {
+    const node = lineRefs.current[index];
+    const done = t >= 1;
+    if (done) {
+      blurRefs.current[index]?.setAttribute("stdDeviation", "0");
+      matrixRefs.current[index]?.setAttribute("values", matrixValues(1, 0));
+      if (node) node.style.filter = "none";
       return;
     }
-    const scrolled = clamp(-track.getBoundingClientRect().top, 0, scrollable);
-    targetProgressRef.current = scrolled / scrollable;
+    const goo = gooAt(t);
+    blurRefs.current[index]?.setAttribute("stdDeviation", goo.std.toFixed(2));
+    matrixRefs.current[index]?.setAttribute("values", matrixValues(goo.amp, goo.off));
+    if (node) node.style.filter = `url(#prose-goo-${index})`;
   }, []);
+
+  const tickGoo = useCallback(
+    (now: number) => {
+      let running = false;
+      gooStartedRef.current.forEach((start, index) => {
+        if (!start) return;
+        const t = clamp((now - start) / GOO_MS, 0, 1);
+        applyGoo(index, t);
+        if (t >= 1) gooStartedRef.current[index] = 0;
+        else running = true;
+      });
+      gooRafRef.current = running ? window.requestAnimationFrame(tickGoo) : 0;
+    },
+    [applyGoo],
+  );
+
+  const startGoo = useCallback(
+    (index: number) => {
+      if (reduceMotion) return;
+      gooStartedRef.current[index] = performance.now();
+      if (!gooRafRef.current) {
+        gooRafRef.current = window.requestAnimationFrame(tickGoo);
+      }
+    },
+    [reduceMotion, tickGoo],
+  );
+
+  const markFlowReady = useCallback(() => {
+    if (flowReadyRef.current) return;
+    flowReadyRef.current = true;
+    window.requestAnimationFrame(() => setFlowReady(true));
+  }, []);
+
+  const setFlowY = useCallback((y: number) => {
+    const flow = flowRef.current;
+    if (!flow) return;
+    flow.style.transform = `translate3d(0, ${y.toFixed(2)}px, 0)`;
+    markFlowReady();
+  }, [markFlowReady]);
+
+  const alignShownBlock = useCallback((index: number) => {
+    const stage = stageRef.current;
+    const current = lines[index];
+    if (!stage || !current) return;
+    const shown = lines.filter((line) => line.paragraph === current.paragraph && line.globalIndex <= index);
+    const first = lineRefs.current[shown[0]?.globalIndex ?? -1];
+    const last = lineRefs.current[shown[shown.length - 1]?.globalIndex ?? -1];
+    if (!first || !last) return;
+    const top = first.offsetTop;
+    const bottom = last.offsetTop + last.offsetHeight;
+    const mid = (top + bottom) / 2;
+    const blockH = bottom - top;
+    const safeTop = stage.clientHeight * 0.06;
+    const safeBottom = stage.clientHeight * 0.94;
+    const avail = safeBottom - safeTop;
+    let y = stage.clientHeight * 0.5 - mid;
+    if (blockH >= avail) {
+      y = (stage.clientHeight - blockH) / 2 - top;
+    } else {
+      if (top + y < safeTop) y = safeTop - top;
+      if (bottom + y > safeBottom) y = safeBottom - bottom;
+    }
+    setFlowY(y);
+  }, [lines, setFlowY]);
+
+  const alignExit = useCallback((paragraph: number) => {
+    const stage = stageRef.current;
+    const paraLines = lines.filter((line) => line.paragraph === paragraph);
+    const last = lineRefs.current[paraLines[paraLines.length - 1]?.globalIndex ?? -1];
+    if (!stage || !last) return;
+    setFlowY(-(last.offsetTop + last.offsetHeight) - stage.clientHeight * 0.1);
+  }, [lines, setFlowY]);
+
+  const snapToBlock = useCallback((index: number) => {
+    const flow = flowRef.current;
+    flow?.classList.remove("is-ready");
+    alignShownBlock(index);
+    if (flow) void flow.offsetWidth;
+    if (!reduceMotion) flow?.classList.add("is-ready");
+  }, [alignShownBlock, reduceMotion]);
+
+  const alignFlow = useCallback(() => {
+    if (exitingParagraph !== null) alignExit(exitingParagraph);
+    else alignShownBlock(activeIndex);
+  }, [activeIndex, alignExit, alignShownBlock, exitingParagraph]);
+  const alignFlowRef = useRef(alignFlow);
+  alignFlowRef.current = alignFlow;
 
   useEffect(() => {
     const media = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -335,39 +392,79 @@ export function OpeningProseSection({ chapter }: Props) {
     return () => media.removeEventListener("change", sync);
   }, []);
 
-  useEffect(() => {
-    if (revealedRef.current.length !== lineCount) {
-      revealedRef.current = Array.from({ length: lineCount }, (_, i) => revealedRef.current[i] ?? false);
+  useLayoutEffect(() => {
+    const flow = flowRef.current;
+    if (reduceMotion) {
+      alignShownBlock(activeIndex);
+      return;
     }
-  }, [lineCount]);
+
+    if (exitingParagraph !== null) {
+      alignExit(exitingParagraph);
+      window.clearTimeout(exitTimerRef.current);
+      exitTimerRef.current = window.setTimeout(() => {
+        const pending = pendingIndexRef.current;
+        pendingIndexRef.current = null;
+        isExitingRef.current = false;
+        snapNextRef.current = true;
+        if (pending !== null) {
+          activeIndexRef.current = pending;
+          setActiveIndex(pending);
+        }
+        setExitingParagraph(null);
+      }, FLOW_MS);
+      return () => window.clearTimeout(exitTimerRef.current);
+    }
+
+    if (snapNextRef.current) {
+      snapNextRef.current = false;
+      snapToBlock(activeIndex);
+      setRevealIncoming(true);
+      return;
+    }
+
+    if (enterFromExitRef.current) {
+      enterFromExitRef.current = false;
+      flow?.classList.remove("is-ready");
+      alignExit(activeLine?.paragraph ?? 0);
+      if (flow) void flow.offsetWidth;
+      flow?.classList.add("is-ready");
+      alignShownBlock(activeIndex);
+      return;
+    }
+
+    alignShownBlock(activeIndex);
+  }, [activeIndex, activeLine?.paragraph, alignExit, alignShownBlock, exitingParagraph, reduceMotion, snapToBlock]);
 
   useEffect(() => {
-    if (reduceMotion) return;
+    if (reduceMotion || exitingParagraph !== null || !revealIncoming) return;
+    startGoo(activeIndex);
+  }, [activeIndex, exitingParagraph, reduceMotion, revealIncoming, startGoo]);
 
-    updateFromScroll();
-    applyFrame(targetProgressRef.current);
+  useEffect(() => {
+    if (reduceMotion || exitingParagraph !== null || isExitingRef.current) return;
+    const line = lines[activeIndex];
+    const next = lines[activeIndex + 1];
+    if (!line || line.paragraph !== 0 || !next || next.paragraph === line.paragraph) return;
 
-    const onScroll = () => {
-      updateFromScroll();
-      applyFrame(targetProgressRef.current);
-    };
+    const timer = window.setTimeout(() => {
+      setFrameIndex(activeIndex + 1);
+    }, FIRST_PARA_HOLD_MS);
+    return () => window.clearTimeout(timer);
+  }, [activeIndex, exitingParagraph, lines, reduceMotion, setFrameIndex]);
 
-    const unsubscribe = smoothScroll?.subscribeScroll(onScroll);
-
-    const onResize = () => {
-      updateFromScroll();
-      applyFrame(targetProgressRef.current);
-    };
-
-    window.addEventListener("scroll", onScroll, { passive: true });
+  useEffect(() => {
+    const onResize = () => alignFlowRef.current();
     window.addEventListener("resize", onResize);
-
+    void document.fonts?.ready.then(() => alignFlowRef.current());
     return () => {
-      unsubscribe?.();
-      window.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", onResize);
+      if (gooRafRef.current) {
+        window.cancelAnimationFrame(gooRafRef.current);
+        gooRafRef.current = 0;
+      }
     };
-  }, [applyFrame, reduceMotion, smoothScroll, updateFromScroll]);
+  }, []);
 
   return (
     <section
@@ -378,80 +475,87 @@ export function OpeningProseSection({ chapter }: Props) {
     >
       <svg className="opening-prose__defs" aria-hidden="true">
         <defs>
-          {paragraphs.flatMap((paragraph) =>
-            paragraph.lines.map((line) => (
-              <filter
-                key={`prose-goo-${line.globalIndex}`}
-                id={`prose-goo-${line.globalIndex}`}
-                x="-25%"
-                y="-25%"
-                width="150%"
-                height="150%"
-                colorInterpolationFilters="sRGB"
-              >
-                <feGaussianBlur
-                  ref={(node) => {
-                    blurRefs.current[line.globalIndex] = node;
-                  }}
-                  in="SourceGraphic"
-                  stdDeviation={reduceMotion ? 0 : BLUR_START}
-                  result="blur"
-                />
-                <feColorMatrix
-                  ref={(node) => {
-                    matrixRefs.current[line.globalIndex] = node;
-                  }}
-                  in="blur"
-                  type="matrix"
-                  mode="matrix"
-                  values={reduceMotion ? matrixValues(1, 0) : matrixValues(GOO_AMP, GOO_OFF)}
-                  result="goo"
-                />
-              </filter>
-            )),
-          )}
+          {lines.map((line) => (
+            <filter
+              key={`prose-goo-${line.globalIndex}`}
+              id={`prose-goo-${line.globalIndex}`}
+              x="-45%"
+              y="-45%"
+              width="190%"
+              height="190%"
+              colorInterpolationFilters="sRGB"
+            >
+              <feGaussianBlur
+                ref={(node) => {
+                  blurRefs.current[line.globalIndex] = node;
+                }}
+                in="SourceGraphic"
+                stdDeviation={reduceMotion ? 0 : BLUR_START}
+                result="blur"
+              />
+              <feColorMatrix
+                ref={(node) => {
+                  matrixRefs.current[line.globalIndex] = node;
+                }}
+                in="blur"
+                type="matrix"
+                mode="matrix"
+                values={reduceMotion ? matrixValues(1, 0) : matrixValues(GOO_AMP, GOO_OFF)}
+                result="goo"
+              />
+            </filter>
+          ))}
         </defs>
       </svg>
 
       <div
-        ref={trackRef}
-        className="opening-prose__track"
-        data-scroll-gallery-track
-        style={reduceMotion ? undefined : { height: `${Math.max(totalUnits, 1) * SCROLL_VH_PER_LINE}vh` }}
+        ref={rootRef}
+        className="opening-prose__stage"
+        data-wheel-sequence
+        data-wheel-at={activeIndex <= 0 ? "start" : activeIndex >= maxIndex ? "end" : "mid"}
+        tabIndex={0}
       >
-        <div className="opening-prose__sticky">
-          <div className="opening-prose__stage">
-            {paragraphs.map((paragraph) => (
-              <div
-                key={`para-${paragraph.index}`}
-                ref={(node) => {
-                  paraRefs.current[paragraph.index] = node;
-                }}
-                className={`opening-prose__para opening-prose__para--${paragraph.index === 1 ? "times" : "light"}`}
-              >
-                {(() => {
-                  const minePlan =
-                    paragraph.index === 1 ? mineRevealPlan(paragraph.lines.map((item) => item.text)) : null;
-                  return paragraph.lines.map((line, localIndex) => {
-                  const Tag = paragraph.index === 0 && localIndex === 0 ? "h2" : "p";
-                  return (
-                    <Tag
-                      key={`${line.globalIndex}-${line.text}`}
-                      id={paragraph.index === 0 && localIndex === 0 ? `${chapter.id}-title` : undefined}
-                      ref={(node: HTMLHeadingElement | HTMLParagraphElement | null) => {
-                        lineRefs.current[line.globalIndex] = node;
-                      }}
-                      className={`opening-prose__line m-0${paragraph.index === 1 ? " opening-prose__line--mine" : ""}`}
-                    >
-                      {minePlan
-                        ? renderMineLine(line.text, (charIndex) => revealAt(minePlan, localIndex, charIndex))
-                        : line.text}
-                    </Tag>
-                  );
-                  });
-                })()}
-              </div>
-            ))}
+        <div ref={stageRef} className="opening-prose__window">
+          <div ref={flowRef} className={`opening-prose__flow${flowReady && !reduceMotion ? " is-ready" : ""}`}>
+            {paragraphGroups.map((group) => {
+              const onStage = reduceMotion || group.paragraph === visibleParagraph;
+              const pendingEnter =
+                !reduceMotion &&
+                exitingParagraph === null &&
+                !revealIncoming &&
+                group.paragraph === visibleParagraph;
+              return (
+                <div
+                  key={group.paragraph}
+                  className={`opening-prose__para-block${onStage ? " is-current" : ""}${pendingEnter ? " is-pending" : ""}${group.paragraph === 1 ? " opening-prose__para-block--times" : ""}`}
+                  aria-hidden={onStage ? "false" : "true"}
+                >
+                  {group.lines.map((line) => {
+                    const Tag = line.isTitle ? "h2" : "p";
+                    const minePlan = minePlans.get(line.paragraph);
+                    const shown =
+                      reduceMotion ||
+                      (group.paragraph === visibleParagraph &&
+                        (exitingParagraph !== null || line.globalIndex <= activeIndex));
+                    return (
+                      <Tag
+                        key={`${line.globalIndex}-${line.text}`}
+                        id={line.isTitle ? `${chapter.id}-title` : undefined}
+                        ref={(node: HTMLHeadingElement | HTMLParagraphElement | null) => {
+                          lineRefs.current[line.globalIndex] = node;
+                        }}
+                        className={`opening-prose__line m-0${line.paragraph === 1 ? " opening-prose__line--mine" : ""}${line.paragraph === 1 ? " opening-prose__line--times" : ""}${shown ? " is-in" : ""}`}
+                        aria-hidden={shown ? "false" : "true"}
+                      >
+                        {minePlan
+                          ? renderMineLine(line.text, (charIndex) => revealAt(minePlan, line.localIndex, charIndex))
+                          : line.text}
+                      </Tag>
+                    );
+                  })}
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>
