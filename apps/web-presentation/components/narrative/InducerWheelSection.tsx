@@ -36,6 +36,7 @@ type Frame = {
   id: string;
   pairIndex: number;
   photos: FramePhoto[];
+  phase: "opening" | "opening-transition" | "photos" | "outro";
 };
 
 type StagePhoto = FramePhoto & {
@@ -43,8 +44,13 @@ type StagePhoto = FramePhoto & {
 };
 
 const LOOK_AHEAD = 7;
-const PRE_ROLL = 3;
+const PRE_ROLL = 2;
+const POST_ROLL = 3;
 const PHOTO_LAYOUT_VERSION = 3;
+const FILTER_STAGE_BACKGROUND = "#f5f2eb";
+const FILTER_WHEEL_STEP_DEG = 360 / (inducerPairImages.length + 1);
+const OPENING_COPY =
+  "Here is where the senses begin to cross. Each color is a filter, turning something seen into something felt.";
 
 const PHOTO_ANCHORS = [
   { x: 2, y: -18, width: 18, horizontalEdge: "left", verticalEdge: "top" },
@@ -111,13 +117,22 @@ function navTone(hex: string): "on-dark" | "on-light" {
  * distant + blurred → clear → enlarged + blurred as it passes the viewer.
  */
 function buildFrames(images: InducerPairImage[]): Frame[] {
-  const frames: Frame[] = [];
+  const frames: Frame[] = [
+    { id: "opening", pairIndex: 0, photos: [], phase: "opening" },
+    {
+      id: "opening-transition",
+      pairIndex: 0,
+      photos: [],
+      phase: "opening-transition",
+    },
+  ];
   images.forEach((item, pairIndex) => {
     const count = item.photos.length;
-    for (let focus = -PRE_ROLL; focus < count; focus += 1) {
+    for (let focus = -PRE_ROLL; focus < count + POST_ROLL; focus += 1) {
       frames.push({
         id: `${item.colorLabel}-${focus}`,
         pairIndex,
+        phase: "photos",
         // Keep the whole color set mounted so each image travels forward from
         // deep space instead of being inserted when it becomes visible.
         photos: item.photos.map((src, index) => {
@@ -131,6 +146,12 @@ function buildFrames(images: InducerPairImage[]): Frame[] {
         }),
       });
     }
+    frames.push({
+      id: `${item.colorLabel}-outro`,
+      pairIndex,
+      photos: [],
+      phase: "outro",
+    });
   });
   return frames;
 }
@@ -192,15 +213,25 @@ export function InducerWheelSection({ chapter }: Props) {
   const rootRef = useRef<HTMLDivElement>(null);
   const frames = useMemo(() => buildFrames(inducerPairImages), [PHOTO_LAYOUT_VERSION]);
   const [activeIndex, setActiveIndex] = useState(0);
+  const [direction, setDirection] = useState<1 | -1>(1);
   const [stageVisible, setStageVisible] = useState(false);
+  const activeIndexRef = useRef(activeIndex);
+  const wasIntersectingRef = useRef(false);
+  activeIndexRef.current = activeIndex;
   const maxIndex = Math.max(0, frames.length - 1);
   const frame = frames[activeIndex] ?? frames[0];
   const pair = frame ? inducerPairImages[frame.pairIndex] : undefined;
+  const nextPair = frame ? inducerPairImages[frame.pairIndex + 1] : undefined;
   const photos = useMountedPhotos(frame?.photos ?? []);
 
   const setFrameIndex = useCallback(
     (index: number) => {
-      setActiveIndex(Math.max(0, Math.min(maxIndex, index)));
+      const nextIndex = Math.max(0, Math.min(maxIndex, index));
+      if (nextIndex !== activeIndexRef.current) {
+        setDirection(nextIndex > activeIndexRef.current ? 1 : -1);
+        activeIndexRef.current = nextIndex;
+        setActiveIndex(nextIndex);
+      }
     },
     [maxIndex],
   );
@@ -211,6 +242,12 @@ export function InducerWheelSection({ chapter }: Props) {
     activeIndex,
     onIndexChange: setFrameIndex,
     stepMs: 220,
+    stepMsForIndex: (index) =>
+      frames[index]?.phase === "opening-transition"
+        ? 2150
+        : frames[index]?.phase === "outro"
+          ? 1350
+          : 220,
   });
 
   useEffect(() => {
@@ -218,12 +255,22 @@ export function InducerWheelSection({ chapter }: Props) {
     if (!stage) return;
 
     const observer = new IntersectionObserver(
-      ([entry]) => setStageVisible(Boolean(entry?.isIntersecting)),
-      { threshold: 0.28 },
+      ([entry]) => {
+        if (!entry) return;
+        const isIntersecting = entry.isIntersecting;
+
+        if (isIntersecting && !wasIntersectingRef.current) {
+          setFrameIndex(entry.boundingClientRect.top >= 0 ? 0 : maxIndex);
+        }
+
+        wasIntersectingRef.current = isIntersecting;
+        setStageVisible(isIntersecting && entry.intersectionRatio >= 0.28);
+      },
+      { threshold: [0.01, 0.28] },
     );
     observer.observe(stage);
     return () => observer.disconnect();
-  }, []);
+  }, [maxIndex, setFrameIndex]);
 
   useEffect(() => {
     inducerPairImages.forEach((item) => {
@@ -252,17 +299,63 @@ export function InducerWheelSection({ chapter }: Props) {
 
   if (!frame || !pair) return null;
 
+  const isOpening = frame.phase === "opening";
+  const isOpeningTransition = frame.phase === "opening-transition";
+  const isOpeningState = isOpening || isOpeningTransition;
+  const isWheelStep = frame.phase === "outro" || isOpeningTransition;
+  const currentWheelIndex =
+    isOpening || isOpeningTransition ? 0 : frame.pairIndex + 1;
+  const boundaryStart = currentWheelIndex * FILTER_WHEEL_STEP_DEG;
+  const boundaryEnd = (currentWheelIndex + 1) * FILTER_WHEEL_STEP_DEG;
+  const wheelFrom =
+    isWheelStep && direction < 0 ? boundaryEnd : boundaryStart;
+  const wheelTo = isWheelStep
+    ? direction > 0
+      ? boundaryEnd
+      : boundaryStart
+    : boundaryStart;
+  const wheelDelta = wheelTo - wheelFrom;
+  const transitionPair = isOpeningTransition
+    ? pair
+    : direction > 0
+      ? nextPair
+      : pair;
+  const outgoingPair = isOpeningTransition
+    ? undefined
+    : direction > 0
+      ? pair
+      : nextPair;
+  const apertureFrom = isOpeningTransition
+    ? direction > 0
+      ? -FILTER_WHEEL_STEP_DEG
+      : 0
+    : direction > 0
+      ? -FILTER_WHEEL_STEP_DEG
+      : FILTER_WHEEL_STEP_DEG;
+  const apertureTo = isOpeningTransition
+    ? direction > 0
+      ? 0
+      : -FILTER_WHEEL_STEP_DEG
+    : 0;
+  const apertureDelta = apertureTo - apertureFrom;
+  const outgoingApertureTo =
+    direction > 0 ? FILTER_WHEEL_STEP_DEG : -FILTER_WHEEL_STEP_DEG;
+
   return (
     <section
       id={chapter.id}
       data-snap-section
-      data-nav={navTone(pair.hex)}
+      data-nav={isOpeningState ? "on-light" : navTone(pair.hex)}
       className="narrative-chapter narrative-chapter--filter-disc min-h-[100svh] scroll-mt-0"
       aria-labelledby={`${chapter.id}-title`}
       style={
         {
           "--pair-hex": pair.hex,
-          "--pair-ink": pair.colorLabel === "White" ? "#686d72" : "#ffffff",
+          "--pair-ink": isOpeningState
+            ? "#3f4549"
+            : pair.colorLabel === "White"
+              ? "#686d72"
+              : "#ffffff",
         } as CSSProperties
       }
     >
@@ -274,6 +367,111 @@ export function InducerWheelSection({ chapter }: Props) {
         tabIndex={0}
         onKeyDown={handleKey}
       >
+        <div
+          className={`join-float__filter-wheel${isWheelStep ? " is-stepping" : ""}${isOpeningTransition ? " is-opening-step" : ""}`}
+          aria-hidden="true"
+          style={
+            {
+              "--wheel-angle": `${wheelTo}deg`,
+              "--wheel-from": `${wheelFrom}deg`,
+              "--wheel-ease-out": `${wheelFrom + wheelDelta * 0.08}deg`,
+              "--wheel-ease-in": `${wheelFrom + wheelDelta * 0.92}deg`,
+              "--wheel-to": `${wheelTo}deg`,
+            } as CSSProperties
+          }
+        >
+          {[
+            { colorLabel: "Clear", hex: FILTER_STAGE_BACKGROUND },
+            ...inducerPairImages,
+          ].map((disc, index) => (
+            <div
+              key={disc.colorLabel}
+              className="join-float__disc-slot"
+              style={
+                {
+                  "--disc-slot-angle": `${-index * FILTER_WHEEL_STEP_DEG}deg`,
+                  "--disc-color": disc.hex,
+                } as CSSProperties
+              }
+            >
+              <div className="join-float__disc" />
+            </div>
+          ))}
+        </div>
+        {isWheelStep && outgoingPair ? (
+          <div
+            className="join-float__transition-copy-mask"
+            aria-hidden="true"
+            style={
+              {
+                "--transition-ink":
+                  outgoingPair.colorLabel === "White" ? "#686d72" : "#ffffff",
+                "--aperture-from": "0deg",
+                "--aperture-ease-out": `${outgoingApertureTo * 0.08}deg`,
+                "--aperture-ease-in": `${outgoingApertureTo * 0.92}deg`,
+                "--aperture-to": `${outgoingApertureTo}deg`,
+                "--aperture-counter-from": "0deg",
+                "--aperture-counter-ease-out": `${-outgoingApertureTo * 0.08}deg`,
+                "--aperture-counter-ease-in": `${-outgoingApertureTo * 0.92}deg`,
+                "--aperture-counter-to": `${-outgoingApertureTo}deg`,
+              } as CSSProperties
+            }
+          >
+            <div className="join-float__transition-copy-counter">
+              <div className="join-float__copy join-float__copy--transition is-visible">
+                <h3 className="join-float__title m-0 font-prose">
+                  {titleFor(outgoingPair)}
+                </h3>
+                <div className="join-float__lines">
+                  {outgoingPair.lines.map((line) => (
+                    <p key={line} className="join-float__line m-0 font-body">
+                      {line}
+                    </p>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : null}
+        {isWheelStep && (isOpeningTransition || transitionPair) ? (
+          <div
+            className={`join-float__transition-copy-mask${isOpeningTransition ? " is-opening-transition" : ""}`}
+            aria-hidden="true"
+            style={
+              {
+                "--transition-ink":
+                  transitionPair?.colorLabel === "White" ? "#686d72" : "#ffffff",
+                "--aperture-from": `${apertureFrom}deg`,
+                "--aperture-ease-out": `${apertureFrom + apertureDelta * 0.08}deg`,
+                "--aperture-ease-in": `${apertureFrom + apertureDelta * 0.92}deg`,
+                "--aperture-to": `${apertureTo}deg`,
+                "--aperture-counter-from": `${-apertureFrom}deg`,
+                "--aperture-counter-ease-out": `${-(apertureFrom + apertureDelta * 0.08)}deg`,
+                "--aperture-counter-ease-in": `${-(apertureFrom + apertureDelta * 0.92)}deg`,
+                "--aperture-counter-to": `${-apertureTo}deg`,
+              } as CSSProperties
+            }
+          >
+            <div className="join-float__transition-copy-counter">
+              <div className="join-float__copy join-float__copy--transition is-visible">
+                {transitionPair ? (
+                  <>
+                    <h3 className="join-float__title m-0 font-prose">
+                      {titleFor(transitionPair)}
+                    </h3>
+                    <div className="join-float__lines">
+                      {transitionPair.lines.map((line) => (
+                        <p key={line} className="join-float__line m-0 font-body">
+                          {line}
+                        </p>
+                      ))}
+                    </div>
+                  </>
+                ) : null}
+              </div>
+            </div>
+          </div>
+        ) : null}
         <div className="join-float__bloom join-float__bloom--a" aria-hidden="true" />
         <div className="join-float__bloom join-float__bloom--b" aria-hidden="true" />
         <div className="join-float__glass" aria-hidden="true" />
@@ -302,17 +500,32 @@ export function InducerWheelSection({ chapter }: Props) {
 
         <div className="join-float__veil" aria-hidden="true" />
 
-        <div key={pair.colorLabel} className="join-float__copy" aria-live="polite">
-          <h3 id={`${chapter.id}-title`} className="join-float__title m-0 font-prose">
-            {titleFor(pair)}
-          </h3>
-          <div className="join-float__lines">
-            {pair.lines.map((line) => (
-              <p key={line} className="join-float__line m-0 font-body">
-                {line}
-              </p>
-            ))}
-          </div>
+        <div
+          key={isOpeningState ? "opening" : pair.colorLabel}
+          className={`join-float__copy${isOpeningState || frame.phase === "photos" ? " is-visible" : ""}${isOpeningTransition ? direction > 0 ? " is-opening-copy-leaving" : " is-opening-copy-returning" : ""}${frame.phase === "outro" ? " is-transition-hidden" : ""}`}
+          aria-live="polite"
+        >
+          {isOpeningState ? (
+            <p
+              id={`${chapter.id}-title`}
+              className="join-float__opening-copy m-0 font-body"
+            >
+              {OPENING_COPY}
+            </p>
+          ) : (
+            <>
+              <h3 id={`${chapter.id}-title`} className="join-float__title m-0 font-prose">
+                {titleFor(pair)}
+              </h3>
+              <div className="join-float__lines">
+                {pair.lines.map((line) => (
+                  <p key={line} className="join-float__line m-0 font-body">
+                    {line}
+                  </p>
+                ))}
+              </div>
+            </>
+          )}
         </div>
       </div>
     </section>

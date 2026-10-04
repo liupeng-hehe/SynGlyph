@@ -529,18 +529,60 @@ body {
   transition: color 0.7s ease;
 }
 
-.join-float::before {
-  content: "";
+.join-float__filter-wheel {
+  --disc-orbit-radius: 118vmax;
   position: absolute;
+  inset: 0;
   z-index: 0;
+  pointer-events: none;
+  transform-origin: 50% calc(50% + var(--disc-orbit-radius));
+  transform: rotate(var(--wheel-angle, 0deg));
+  will-change: transform;
+}
+
+.join-float__filter-wheel.is-initializing,
+.join-float__filter-wheel.is-stepping {
+  animation: join-filter-wheel-step 1.3s both;
+}
+
+.join-float__filter-wheel.is-opening-step {
+  animation-duration: 2.1s;
+}
+
+.join-float__disc-slot {
+  position: absolute;
+  inset: 0;
+  transform-origin: 50% calc(50% + var(--disc-orbit-radius));
+  transform: rotate(var(--disc-slot-angle));
+}
+
+.join-float__disc {
+  position: absolute;
   left: 50%;
   top: 50%;
   width: min(92vw, 92svh);
   aspect-ratio: 1;
   border-radius: 50%;
   transform: translate(-50%, -50%);
-  background-color: var(--pair-hex, #620b0e);
-  transition: background-color 0.9s ease;
+  background-color: var(--disc-color, var(--pair-hex, #620b0e));
+}
+
+@keyframes join-filter-wheel-step {
+  0% {
+    transform: rotate(var(--wheel-from));
+    animation-timing-function: cubic-bezier(0.42, 0, 1, 1);
+  }
+  14% {
+    transform: rotate(var(--wheel-ease-out));
+    animation-timing-function: linear;
+  }
+  86% {
+    transform: rotate(var(--wheel-ease-in));
+    animation-timing-function: cubic-bezier(0, 0, 0.58, 1);
+  }
+  100% {
+    transform: rotate(var(--wheel-to));
+  }
 }
 
 .join-float:focus-visible {
@@ -737,9 +779,129 @@ body {
   flex-direction: column;
   width: min(74rem, calc(100% - 9rem));
   padding: clamp(1rem, 2vw, 1.75rem);
-  transform: translate(-50%, -52%);
+  opacity: 0;
+  transform: translate(-50%, calc(-52% + 1.25rem));
   text-align: center;
-  animation: join-copy-in 0.7s ease;
+  pointer-events: none;
+  transition:
+    opacity 0.65s ease,
+    transform 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.join-float__copy.is-visible {
+  opacity: 1;
+  transform: translate(-50%, -52%);
+}
+
+.join-float__copy.is-transition-hidden {
+  opacity: 0;
+  transition: none;
+  animation: none;
+}
+
+.join-float__copy.is-opening-copy-leaving {
+  animation: join-opening-copy-leave 2.1s ease both;
+}
+
+.join-float__copy.is-opening-copy-returning {
+  animation: join-opening-copy-return 2.1s ease both;
+}
+
+@keyframes join-opening-copy-leave {
+  0%,
+  45% {
+    opacity: 1;
+  }
+  82%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes join-opening-copy-return {
+  0%,
+  18% {
+    opacity: 0;
+  }
+  55%,
+  100% {
+    opacity: 1;
+  }
+}
+
+.join-float__transition-copy-mask,
+.join-float__transition-copy-counter {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  transform-origin: 50% calc(50% + var(--disc-orbit-radius, 118vmax));
+}
+
+.join-float__transition-copy-mask {
+  z-index: 4;
+  clip-path: circle(min(46vw, 46svh) at 50% 50%);
+  animation: join-copy-aperture-forward 1.3s both;
+}
+
+.join-float__transition-copy-counter {
+  animation: join-copy-aperture-counter 1.3s both;
+}
+
+.join-float__transition-copy-mask.is-opening-transition,
+.join-float__transition-copy-mask.is-opening-transition
+  .join-float__transition-copy-counter {
+  animation-duration: 2.1s;
+}
+
+.join-float__copy--transition {
+  --pair-ink: var(--transition-ink);
+  transition: none;
+}
+
+.join-float__opening-copy {
+  max-width: 42rem;
+  margin-inline: auto !important;
+  font-size: clamp(1.15rem, 1.7vw, 1.55rem);
+  font-weight: 500;
+  line-height: 1.55;
+  color: var(--pair-ink);
+  text-wrap: balance;
+}
+
+@keyframes join-copy-aperture-forward {
+  0% {
+    transform: rotate(var(--aperture-from));
+    animation-timing-function: cubic-bezier(0.42, 0, 1, 1);
+  }
+  14% {
+    transform: rotate(var(--aperture-ease-out));
+    animation-timing-function: linear;
+  }
+  86% {
+    transform: rotate(var(--aperture-ease-in));
+    animation-timing-function: cubic-bezier(0, 0, 0.58, 1);
+  }
+  100% {
+    transform: rotate(var(--aperture-to));
+  }
+}
+
+@keyframes join-copy-aperture-counter {
+  0% {
+    transform: rotate(var(--aperture-counter-from));
+    animation-timing-function: cubic-bezier(0.42, 0, 1, 1);
+  }
+  14% {
+    transform: rotate(var(--aperture-counter-ease-out));
+    animation-timing-function: linear;
+  }
+  86% {
+    transform: rotate(var(--aperture-counter-ease-in));
+    animation-timing-function: cubic-bezier(0, 0, 0.58, 1);
+  }
+  100% {
+    transform: rotate(var(--aperture-counter-to));
+  }
 }
 
 .join-float__title {
@@ -800,7 +962,11 @@ body {
   .join-float,
   .narrative-chapter--filter-disc,
   .join-float__bloom,
+  .join-float__filter-wheel,
+  .join-float__disc,
   .join-float__frame,
+  .join-float__transition-copy-mask,
+  .join-float__transition-copy-counter,
   .join-float__title,
   .join-float__copy {
     transition: none;

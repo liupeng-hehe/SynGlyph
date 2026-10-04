@@ -16,6 +16,7 @@ type Options = {
   activeIndex: number;
   onIndexChange: (index: number) => void;
   stepMs?: number;
+  stepMsForIndex?: (index: number) => number;
 };
 
 /**
@@ -28,11 +29,13 @@ export function useSnapSectionWheelSequence({
   activeIndex,
   onIndexChange,
   stepMs = 420,
+  stepMsForIndex,
 }: Options) {
   const smoothScroll = useSmoothScroll();
   const indexRef = useRef(activeIndex);
   const countRef = useRef(itemCount);
   const onIndexChangeRef = useRef(onIndexChange);
+  const stepMsForIndexRef = useRef(stepMsForIndex);
   const scrollToRef = useRef(smoothScroll?.scrollTo);
   const lockRef = useRef(false);
   const wasAwayRef = useRef(true);
@@ -41,6 +44,7 @@ export function useSnapSectionWheelSequence({
   indexRef.current = activeIndex;
   countRef.current = itemCount;
   onIndexChangeRef.current = onIndexChange;
+  stepMsForIndexRef.current = stepMsForIndex;
   scrollToRef.current = smoothScroll?.scrollTo;
 
   useEffect(() => {
@@ -80,10 +84,11 @@ export function useSnapSectionWheelSequence({
       if (Math.abs(section.getBoundingClientRect().top) > 12) {
         scrollToRef.current?.(section);
       }
-      onIndexChangeRef.current(goingDown ? index + 1 : index - 1);
+      const nextIndex = goingDown ? index + 1 : index - 1;
+      onIndexChangeRef.current(nextIndex);
       window.setTimeout(() => {
         lockRef.current = false;
-      }, stepMs);
+      }, stepMsForIndexRef.current?.(nextIndex) ?? stepMs);
     };
 
     const onScroll = () => {
