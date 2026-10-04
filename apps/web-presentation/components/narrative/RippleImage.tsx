@@ -353,6 +353,7 @@ export function RippleImage({
   const [useGl, setUseGl] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [fallbackSrc, setFallbackSrc] = useState(src);
+  const [softReveal, setSoftReveal] = useState(true);
 
   const disposeTexture = useCallback((tex: THREE.Texture | null) => {
     tex?.dispose();
@@ -380,9 +381,13 @@ export function RippleImage({
 
   useEffect(() => {
     if (!useGl) {
+      setSoftReveal(false);
       setFallbackSrc(src);
       setLoaded(true);
-      return;
+      let revealFrame = requestAnimationFrame(() => {
+        revealFrame = requestAnimationFrame(() => setSoftReveal(true));
+      });
+      return () => cancelAnimationFrame(revealFrame);
     }
 
     let cancelled = false;
@@ -576,6 +581,7 @@ export function RippleImage({
     if (!useGl || !loaded) return;
 
     let cancelled = false;
+    let revealFrame = 0;
     const applySrc = async () => {
       const mat = materialRef.current;
       if (!mat) return;
@@ -602,24 +608,26 @@ export function RippleImage({
           mat.uniforms.uTexB.value = nextTex;
           mat.uniforms.uMix.value = 0;
           mat.uniforms.uStrength.value = 0;
+          setSoftReveal(false);
+          revealFrame = requestAnimationFrame(() => {
+            revealFrame = requestAnimationFrame(() => setSoftReveal(true));
+          });
           return;
         }
 
-        if (reduceMotionRef.current) {
-          disposeTexture(texARef.current);
-          texARef.current = nextTex;
-          mat.uniforms.uTexA.value = nextTex;
-          mat.uniforms.uTexB.value = nextTex;
-          mat.uniforms.uMix.value = 0;
-          mat.uniforms.uStrength.value = 0;
-          return;
-        }
-
+        transitionRef.current = { start: 0, active: false };
+        disposeTexture(texARef.current);
         disposeTexture(texBRef.current);
-        texBRef.current = nextTex;
+        texARef.current = nextTex;
+        texBRef.current = null;
+        mat.uniforms.uTexA.value = nextTex;
         mat.uniforms.uTexB.value = nextTex;
         mat.uniforms.uMix.value = 0;
-        transitionRef.current = { start: performance.now(), active: true };
+        mat.uniforms.uStrength.value = 0;
+        setSoftReveal(false);
+        revealFrame = requestAnimationFrame(() => {
+          revealFrame = requestAnimationFrame(() => setSoftReveal(true));
+        });
       } catch {
         if (!cancelled) setUseGl(false);
       }
@@ -629,6 +637,7 @@ export function RippleImage({
 
     return () => {
       cancelled = true;
+      cancelAnimationFrame(revealFrame);
     };
   }, [disposeTexture, loaded, makeTexture, src, useGl]);
 
@@ -671,7 +680,7 @@ export function RippleImage({
   return (
     <div
       ref={wrapRef}
-      className={`ripple-image ${className}`.trim()}
+      className={`ripple-image${softReveal ? " is-soft-revealed" : ""} ${className}`.trim()}
       onPointerMove={onPointerMove}
       onPointerDown={onPointerDown}
     >

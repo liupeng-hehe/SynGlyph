@@ -870,13 +870,30 @@ export function ScrollGallerySection({
       >
         <div className="neuro-scroll-section__sticky" ref={stickyRef}>
           {isSparks ? (
-            <p
-              className="neuro-scroll-section__hero-title m-0 font-body"
+            <div
+              className="neuro-scroll-section__hero-intro"
               style={{ opacity: heroTitleOpacity }}
               aria-hidden={heroTitleOpacity < 0.08}
             >
-              {chapter.title}
-            </p>
+              <p className="neuro-scroll-section__hero-eyebrow m-0 font-body">
+                {chapter.eyebrow}
+              </p>
+              <p className="neuro-scroll-section__hero-title m-0 font-body">
+                {chapter.title}
+              </p>
+              {chapter.subtitle ? (
+                <p className="neuro-scroll-section__hero-subtitle m-0 font-body">
+                  {chapter.subtitle}
+                </p>
+              ) : null}
+              <div className="neuro-scroll-section__hero-body">
+                {chapter.body.map((paragraph) => (
+                  <p key={paragraph} className="neuro-scroll-section__hero-paragraph m-0 font-body">
+                    {paragraph}
+                  </p>
+                ))}
+              </div>
+            </div>
           ) : null}
 
           <header

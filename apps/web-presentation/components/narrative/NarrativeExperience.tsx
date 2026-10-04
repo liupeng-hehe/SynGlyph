@@ -6,7 +6,6 @@ import {
 } from "@/content/scrollGallerySlides";
 
 import { ChapterShell } from "./ChapterShell";
-import { ChapterTransitionSection } from "./ChapterTransitionSection";
 import { ExhibitionChapter } from "./ExhibitionChapter";
 import { InducerWheelSection } from "./InducerWheelSection";
 import { OpeningEditorialHero } from "./OpeningEditorialHero";
@@ -40,8 +39,6 @@ export function NarrativeExperience() {
               <OpeningProseSection chapter={chapter} />
             ) : chapter.id === "exhibition" ? (
               <ExhibitionChapter chapter={chapter} />
-            ) : chapter.id === "artworks-transition" ? (
-              <ChapterTransitionSection chapter={chapter} />
             ) : chapter.id === "what-is-synesthesia" ? (
               <InducerWheelSection chapter={chapter} />
             ) : chapter.id === "synesthesia-sparks" ? (

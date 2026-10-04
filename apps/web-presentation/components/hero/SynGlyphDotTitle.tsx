@@ -11,7 +11,7 @@ import {
 } from "@/lib/colorStudio/synestheticCardPalette";
 
 const WORD = "SYNGLYPH";
-const INK: Rgb = { r: 255, g: 255, b: 255 };
+const INK: Rgb = { r: 206, g: 143, b: 158 };
 const FLOWER_DELAY_MS = 60;
 const FLOWER_LIFE_MS = 1080;
 const FLOWER_COOLDOWN_MS = 1400;

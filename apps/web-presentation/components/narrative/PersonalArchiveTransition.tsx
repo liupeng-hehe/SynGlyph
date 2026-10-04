@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 
+import { useSnapSectionWheelSequence } from "./useSnapSectionWheelSequence";
+
 type TransitionState = "before" | "visible" | "after";
 
 type BridgeProps = {
@@ -10,6 +12,9 @@ type BridgeProps = {
   variant: "dark-to-light" | "light-to-green";
 };
 
+const DARK_TO_LIGHT_HOLD_STEPS = 5;
+const DARK_TO_LIGHT_STEP_MS = 1100;
+
 export function NarrativeBridgeTransition({
   children,
   ariaLabel,
@@ -17,6 +22,16 @@ export function NarrativeBridgeTransition({
 }: BridgeProps) {
   const sectionRef = useRef<HTMLElement>(null);
   const [state, setState] = useState<TransitionState>("before");
+  const [holdIndex, setHoldIndex] = useState(0);
+  const holdCount = variant === "dark-to-light" ? DARK_TO_LIGHT_HOLD_STEPS : 1;
+
+  useSnapSectionWheelSequence({
+    rootRef: sectionRef,
+    itemCount: holdCount,
+    activeIndex: holdIndex,
+    onIndexChange: setHoldIndex,
+    stepMs: variant === "dark-to-light" ? DARK_TO_LIGHT_STEP_MS : 420,
+  });
 
   useEffect(() => {
     const section = sectionRef.current;
@@ -42,12 +57,16 @@ export function NarrativeBridgeTransition({
       ref={sectionRef}
       className={`personal-archive-transition personal-archive-transition--${variant}`}
       data-snap-section
+      data-wheel-sequence
+      data-wheel-at={holdIndex <= 0 ? "start" : holdIndex >= holdCount - 1 ? "end" : "mid"}
       data-transition-state={state}
       aria-label={ariaLabel}
     >
-      <p className="personal-archive-transition__copy m-0">
-        {children}
-      </p>
+      <div className="personal-archive-transition__stage">
+        <p className="personal-archive-transition__copy m-0">
+          {children}
+        </p>
+      </div>
     </section>
   );
 }

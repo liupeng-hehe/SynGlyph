@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 
@@ -29,19 +28,13 @@ export function OpeningEditorialHero({ chapter }: Props) {
           <a
             href="#opening"
             className="wordblue-hero__brand font-body"
+            aria-label="SynGlyph"
             onClick={(event) => {
               event.preventDefault();
               scroll?.scrollTo("opening");
             }}
           >
-            <Image
-              src="/collab/logo/wordblue-logo.png"
-              alt="SynGlyph"
-              width={300}
-              height={80}
-              className="wordblue-hero__logo"
-              priority
-            />
+            <span className="wordblue-hero__logo" aria-hidden="true" />
           </a>
           <div className="wordblue-hero__topbar-actions">
             <div className="wordblue-hero__explore-wrap">

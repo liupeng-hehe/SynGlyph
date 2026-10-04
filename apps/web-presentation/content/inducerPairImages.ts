@@ -34,7 +34,7 @@ export const inducerPairImages: InducerPairImage[] = [
     emotionLabel: "Vitality",
     hex: "#BF0C09",
     lines: [
-      "Red holds a ceremonial warmth — auspicious, passionate, and quietly powerful.",
+      "Red holds a ceremonial warmth, auspicious, passionate, and quietly powerful.",
       "It carries love, prosperity, and celebration like a pulse beneath the surface.",
     ],
   },
@@ -55,7 +55,7 @@ export const inducerPairImages: InducerPairImage[] = [
     emotionLabel: "Optimism",
     hex: "#fa9500",
     lines: [
-      "Orange holds a spirited warmth — quick-minded, curious, and bright with possibility.",
+      "Orange holds a spirited warmth, quick-minded, curious, and bright with possibility.",
       "It moves like warm sunlight, turning energy into hope and attention into optimism.",
     ],
   },
@@ -76,7 +76,7 @@ export const inducerPairImages: InducerPairImage[] = [
     emotionLabel: "Serenity",
     hex: "#f4f6f7",
     lines: [
-      "White carries purity and calm — sincere, innocent, and softly untouched.",
+      "White carries purity and calm, sincere, innocent, and softly untouched.",
       "It soothes restlessness into inner peace, like cloud, snow, and quiet light.",
     ],
   },
@@ -97,7 +97,7 @@ export const inducerPairImages: InducerPairImage[] = [
     emotionLabel: "Tenderness",
     hex: "#F7C2BE",
     lines: [
-      "Pink carries a softer kind of love — gentle, intimate, and quietly cared for.",
+      "Pink carries a softer kind of love, gentle, intimate, and quietly cared for.",
       "It holds affection softly, like petals and a quiet blush.",
     ],
   },
@@ -118,7 +118,7 @@ export const inducerPairImages: InducerPairImage[] = [
     emotionLabel: "Balance",
     hex: "#79933D",
     lines: [
-      "Green carries the calm of living things — balanced, breathing, and gently renewed.",
+      "Green carries the calm of living things, balanced, breathing, and gently renewed.",
       "It gives the body somewhere to return, like fern shade, soft moss, and the quiet line of a leaf.",
     ],
   },
@@ -137,9 +137,9 @@ export const inducerPairImages: InducerPairImage[] = [
     alt: "Blue and calm color-emotion card",
     colorLabel: "Blue",
     emotionLabel: "Calm",
-    hex: "#1B75CB",
+    hex: "#446BA6",
     lines: [
-      "Blue carries a quiet distance — cool, spacious, and gently composed.",
+      "Blue carries a quiet distance, cool, spacious, and gently composed.",
       "It slows the feeling down, like still water, and silk moving softly in light.",
     ],
   },
@@ -161,7 +161,7 @@ export const inducerPairImages: InducerPairImage[] = [
     emotionLabel: "Inspired",
     hex: "#B895D3",
     lines: [
-      "Purple carries a quiet elegance — noble, dreamlike, and deeply composed.",
+      "Purple carries a quiet elegance, noble, dreamlike, and deeply composed.",
       "It feels like a thought wrapped in dusk, where imagination becomes slower, richer, and more mysterious.",
     ],
   },

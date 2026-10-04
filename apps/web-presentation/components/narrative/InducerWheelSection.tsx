@@ -241,13 +241,16 @@ export function InducerWheelSection({ chapter }: Props) {
     itemCount: frames.length,
     activeIndex,
     onIndexChange: setFrameIndex,
-    stepMs: 220,
+    stepMs: 280,
     stepMsForIndex: (index) =>
       frames[index]?.phase === "opening-transition"
-        ? 2150
+        ? 2100
         : frames[index]?.phase === "outro"
-          ? 1350
-          : 220,
+          ? 1300
+          : frames[index]?.phase === "photos" &&
+              frames[index]?.photos.every((photo) => photo.depth >= 2)
+            ? 220
+            : 280,
   });
 
   useEffect(() => {
@@ -303,6 +306,13 @@ export function InducerWheelSection({ chapter }: Props) {
   const isOpeningTransition = frame.phase === "opening-transition";
   const isOpeningState = isOpening || isOpeningTransition;
   const isWheelStep = frame.phase === "outro" || isOpeningTransition;
+  const isFinalOutro =
+    frame.phase === "outro" && frame.pairIndex === inducerPairImages.length - 1;
+  const isPhotoHandoff =
+    frame.phase === "photos" &&
+    frame.photos.length > 0 &&
+    (frame.photos.every((photo) => photo.depth >= 2) ||
+      frame.photos.every((photo) => photo.depth < -2));
   const currentWheelIndex =
     isOpening || isOpeningTransition ? 0 : frame.pairIndex + 1;
   const boundaryStart = currentWheelIndex * FILTER_WHEEL_STEP_DEG;
@@ -419,12 +429,12 @@ export function InducerWheelSection({ chapter }: Props) {
           >
             <div className="join-float__transition-copy-counter">
               <div className="join-float__copy join-float__copy--transition is-visible">
-                <h3 className="join-float__title m-0 font-prose">
+                <h3 className="join-float__title m-0">
                   {titleFor(outgoingPair)}
                 </h3>
                 <div className="join-float__lines">
                   {outgoingPair.lines.map((line) => (
-                    <p key={line} className="join-float__line m-0 font-body">
+                    <p key={line} className="join-float__line m-0">
                       {line}
                     </p>
                   ))}
@@ -456,12 +466,12 @@ export function InducerWheelSection({ chapter }: Props) {
               <div className="join-float__copy join-float__copy--transition is-visible">
                 {transitionPair ? (
                   <>
-                    <h3 className="join-float__title m-0 font-prose">
+                    <h3 className="join-float__title m-0">
                       {titleFor(transitionPair)}
                     </h3>
                     <div className="join-float__lines">
                       {transitionPair.lines.map((line) => (
-                        <p key={line} className="join-float__line m-0 font-body">
+                        <p key={line} className="join-float__line m-0">
                           {line}
                         </p>
                       ))}
@@ -470,6 +480,16 @@ export function InducerWheelSection({ chapter }: Props) {
                 ) : null}
               </div>
             </div>
+          </div>
+        ) : null}
+        {isFinalOutro ? (
+          <div className="join-float__closing-copy" aria-live="polite">
+            <p className="join-float__closing-title m-0">
+              What you just felt, artists have long explored.
+            </p>
+            <p className="join-float__closing-subtitle m-0">
+              Here is how six of them gave it form.
+            </p>
           </div>
         ) : null}
         <div className="join-float__bloom join-float__bloom--a" aria-hidden="true" />
@@ -486,9 +506,6 @@ export function InducerWheelSection({ chapter }: Props) {
                   "--frame-x": `${photo.x.toFixed(2)}%`,
                   "--frame-y": `${photo.y.toFixed(2)}%`,
                   "--frame-w": `${photo.width.toFixed(2)}vw`,
-                  transitionDelay: photo.present
-                    ? `${Math.max(0, photo.depth) * 24}ms`
-                    : "0ms",
                   zIndex: photo.depth < 0 ? 10 : 30 - photo.depth,
                 } as CSSProperties
               }
@@ -501,25 +518,24 @@ export function InducerWheelSection({ chapter }: Props) {
         <div className="join-float__veil" aria-hidden="true" />
 
         <div
-          key={isOpeningState ? "opening" : pair.colorLabel}
-          className={`join-float__copy${isOpeningState || frame.phase === "photos" ? " is-visible" : ""}${isOpeningTransition ? direction > 0 ? " is-opening-copy-leaving" : " is-opening-copy-returning" : ""}${frame.phase === "outro" ? " is-transition-hidden" : ""}`}
+          className={`join-float__copy${isOpeningState || frame.phase === "photos" ? " is-visible" : ""}${isOpeningTransition ? direction > 0 ? " is-opening-copy-leaving" : " is-opening-copy-returning" : ""}${frame.phase === "outro" ? " is-transition-hidden" : ""}${isPhotoHandoff ? " is-transition-handoff" : ""}`}
           aria-live="polite"
         >
           {isOpeningState ? (
             <p
               id={`${chapter.id}-title`}
-              className="join-float__opening-copy m-0 font-body"
+              className="join-float__opening-copy m-0"
             >
               {OPENING_COPY}
             </p>
           ) : (
             <>
-              <h3 id={`${chapter.id}-title`} className="join-float__title m-0 font-prose">
+              <h3 id={`${chapter.id}-title`} className="join-float__title m-0">
                 {titleFor(pair)}
               </h3>
               <div className="join-float__lines">
                 {pair.lines.map((line) => (
-                  <p key={line} className="join-float__line m-0 font-body">
+                  <p key={line} className="join-float__line m-0">
                     {line}
                   </p>
                 ))}

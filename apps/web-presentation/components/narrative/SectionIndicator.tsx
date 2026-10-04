@@ -71,7 +71,6 @@ export function SectionIndicator({ items }: Props) {
   const lightNavIds = new Set([
     "what-is-synesthesia",
     "synesthesia-sparks",
-    "artworks-transition",
     "synesthetes",
   ]);
   const isLightNav =

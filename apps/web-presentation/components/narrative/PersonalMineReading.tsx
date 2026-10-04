@@ -63,25 +63,73 @@ function wordDistance(rect: DOMRect, clientX: number, clientY: number): number {
   return Math.hypot(dx, dy);
 }
 
+type LetterBox = {
+  el: HTMLElement;
+  cx: number;
+  cy: number;
+};
+
 type WordBox = {
   el: HTMLElement;
   id: number;
   rect: DOMRect;
+  line: number;
+  col: number;
+  letters: LetterBox[];
 };
 
-function applyWordGaze(root: HTMLElement, clientX: number, clientY: number, litWords: Set<HTMLElement>): Set<HTMLElement> {
+function measureWordBoxes(root: HTMLElement): WordBox[] {
   const nodes = [...root.querySelectorAll<HTMLElement>("[data-mine-word]")];
   const boxes: WordBox[] = [];
+  for (const el of nodes) {
+    const rect = el.getBoundingClientRect();
+    if (rect.width === 0 || rect.height === 0) continue;
+    boxes.push({
+      el,
+      id: boxes.length,
+      rect,
+      line: 0,
+      col: 0,
+      letters: [...el.querySelectorAll<HTMLElement>(".personal-mine__glyph--letter")].map((letter) => {
+        const box = letter.getBoundingClientRect();
+        return { el: letter, cx: box.left + box.width / 2, cy: box.top + box.height / 2 };
+      }),
+    });
+  }
+  if (boxes.length === 0) return boxes;
+
+  boxes.sort((a, b) => (a.rect.top === b.rect.top ? a.rect.left - b.rect.left : a.rect.top - b.rect.top));
+  const lineHeight = boxes[0]?.rect.height || 20;
+  let line = 0;
+  let lineTop = boxes[0]?.rect.top ?? 0;
+  let col = 0;
+  boxes.forEach((box, index) => {
+    box.id = index;
+    if (box.rect.top - lineTop > lineHeight * 0.45) {
+      line += 1;
+      lineTop = box.rect.top;
+      col = 0;
+    }
+    box.line = line;
+    box.col = col;
+    col += 1;
+  });
+  return boxes;
+}
+
+function applyWordGaze(
+  boxes: WordBox[],
+  clientX: number,
+  clientY: number,
+  litWords: Set<HTMLElement>,
+): Set<HTMLElement> {
   let hit: WordBox | null = null;
   let nearest: WordBox | null = null;
   let nearestDist = Infinity;
 
-  for (const el of nodes) {
-    const rect = el.getBoundingClientRect();
-    if (rect.width === 0 || rect.height === 0) continue;
-    const box = { el, id: boxes.length, rect };
-    boxes.push(box);
-    const onLine = clientY >= rect.top - rect.height * 0.35 && clientY <= rect.bottom + rect.height * 0.35;
+  for (const box of boxes) {
+    const { rect } = box;
+    const onLine = clientY >= rect.top - rect.height * 0.55 && clientY <= rect.bottom + rect.height * 0.55;
     const inside = clientX >= rect.left && clientX <= rect.right && clientY >= rect.top && clientY <= rect.bottom;
     if (inside && !hit) hit = box;
     else if (onLine) {
@@ -93,62 +141,38 @@ function applyWordGaze(root: HTMLElement, clientX: number, clientY: number, litW
     }
   }
 
-  const current = hit ?? (nearestDist < 36 ? nearest : null);
+  const current = hit ?? (nearestDist < 64 ? nearest : null);
   const nextLit = new Set<HTMLElement>();
   if (!current) {
     for (const el of litWords) clearWordShow(el);
     return nextLit;
   }
 
-  boxes.sort((a, b) => (a.rect.top === b.rect.top ? a.rect.left - b.rect.left : a.rect.top - b.rect.top));
-  const lineHeight = current.rect.height || 20;
-  const layouts = boxes.map((box) => ({ box, line: 0, col: 0 }));
-  let line = 0;
-  let lineTop = boxes[0]?.rect.top ?? 0;
-  let col = 0;
-  for (const item of layouts) {
-    if (item.box.rect.top - lineTop > lineHeight * 0.45) {
-      line += 1;
-      lineTop = item.box.rect.top;
-      col = 0;
-    }
-    item.line = line;
-    item.col = col;
-    col += 1;
-  }
-
   const planned = planMineVisibility(
-    layouts.map((item) => ({
-      id: item.box.id,
-      line: item.line,
-      col: item.col,
-      letters: item.box.el.querySelectorAll(".personal-mine__glyph--letter").length,
+    boxes.map((box) => ({
+      id: box.id,
+      line: box.line,
+      col: box.col,
+      letters: box.letters.length,
     })),
     current.id,
   );
 
-  const fontSize = parseFloat(getComputedStyle(current.el).fontSize) || 18;
-  const rx = fontSize * 2.8;
-  const ry = fontSize * 0.62;
+  const fontSize = current.rect.height || 18;
+  const rx = fontSize * 3.8;
+  const ry = fontSize * 0.95;
 
-  for (const item of layouts) {
-    const base = planned.get(item.box.id);
+  for (const box of boxes) {
+    const base = planned.get(box.id);
     if (base == null) continue;
-    const isCurrent = item.box.id === current.id;
-    item.box.el.classList.add("personal-mine__word--on");
-    nextLit.add(item.box.el);
-    for (const letter of item.box.el.querySelectorAll<HTMLElement>(".personal-mine__glyph--letter")) {
-      let vivid = 1;
-      if (isCurrent) {
-        const box = letter.getBoundingClientRect();
-        vivid = ellipseVivid(
-          clientX - (box.left + box.width / 2),
-          clientY - (box.top + box.height / 2),
-          rx,
-          ry,
-        );
-      }
-      letter.style.setProperty("--show", letterShow(base, isCurrent, vivid).toFixed(3));
+    const isCurrent = box.id === current.id;
+    box.el.classList.add("personal-mine__word--on");
+    nextLit.add(box.el);
+    for (const letter of box.letters) {
+      const vivid = isCurrent
+        ? ellipseVivid(clientX - letter.cx, clientY - letter.cy, rx, ry)
+        : 1;
+      letter.el.style.setProperty("--show", letterShow(base, isCurrent, vivid).toFixed(3));
     }
   }
 
@@ -171,6 +195,8 @@ export function PersonalMineReading({ paragraphs, active }: Props) {
   const litWordsRef = useRef<Set<HTMLElement>>(new Set());
   const lastClient = useRef<{ x: number; y: number } | null>(null);
   const frameRef = useRef<number | null>(null);
+  const boxesRef = useRef<WordBox[]>([]);
+  const boxesDirtyRef = useRef(true);
   const [gaze, setGaze] = useState<Gaze | null>(null);
 
   const rows = useMemo<Row[]>(
@@ -188,7 +214,11 @@ export function PersonalMineReading({ paragraphs, active }: Props) {
     });
     const color = colorRef.current;
     if (!color) return;
-    litWordsRef.current = applyWordGaze(color, clientX, clientY, litWordsRef.current);
+    if (boxesDirtyRef.current || boxesRef.current.length === 0) {
+      boxesRef.current = measureWordBoxes(color);
+      boxesDirtyRef.current = false;
+    }
+    litWordsRef.current = applyWordGaze(boxesRef.current, clientX, clientY, litWordsRef.current);
   }, []);
 
   const onPointerMove = useCallback(
@@ -214,6 +244,8 @@ export function PersonalMineReading({ paragraphs, active }: Props) {
   }, []);
 
   useEffect(() => {
+    boxesDirtyRef.current = true;
+    boxesRef.current = [];
     if (!active) clearGaze();
   }, [active, clearGaze]);
 
@@ -221,16 +253,19 @@ export function PersonalMineReading({ paragraphs, active }: Props) {
     if (!active) return;
     const node = gazeRef.current;
     const copy = node?.closest(".personal-mine__copy");
-    const onScroll = () => {
+    const markDirty = () => {
+      boxesDirtyRef.current = true;
       const last = lastClient.current;
       if (!last) return;
       paintGaze(last.x, last.y);
     };
-    copy?.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("scroll", onScroll, { passive: true });
+    copy?.addEventListener("scroll", markDirty, { passive: true });
+    window.addEventListener("scroll", markDirty, { passive: true });
+    window.addEventListener("resize", markDirty);
     return () => {
-      copy?.removeEventListener("scroll", onScroll);
-      window.removeEventListener("scroll", onScroll);
+      copy?.removeEventListener("scroll", markDirty);
+      window.removeEventListener("scroll", markDirty);
+      window.removeEventListener("resize", markDirty);
       if (frameRef.current != null) window.cancelAnimationFrame(frameRef.current);
     };
   }, [active, paintGaze]);

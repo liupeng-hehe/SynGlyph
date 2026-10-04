@@ -148,7 +148,7 @@ export const chapters: Chapter[] = [
     body: [
       "A form, precise and visible.\nThen, a nuance.",
       "Something begins to accompany it—\na warmth, a tone, a color\nthat does not alter the form,\nyet somehow belongs to it.\nThe glyph remains exactly where it is.\nWhat changes is what arrives with it.\nAnother layer of experience.\nA presence carried by the form,\ninseparable from it,\neven when nothing on the page\nappears to have changed.",
-      "Then the color falls away.\nThe page returns to black and white.\nWhat remains is the impression that something had been there all along.\nThe color is not on the page.\nIt exists somewhere between what I see and what I feel.\nNow, try the filter yourself.",
+      "Then the color falls away.\nThe page returns to pink and white.\nWhat remains is the impression that something had been there all along.\nThe color is not on the page.\nIt exists somewhere between what I see and what I feel.\nNow, try the filter yourself.",
     ],
   },
   {
@@ -182,7 +182,7 @@ export const chapters: Chapter[] = [
     ],
   },
   {
-    id: "artworks-transition",
+    id: "synesthesia-sparks",
     eyebrow: "05 / DEFINITION",
     navLabel: "Definition",
     title: "Synesthesia: A Union of Senses",
@@ -193,19 +193,11 @@ export const chapters: Chapter[] = [
       "In synesthesia, these crossings are more than artistic gestures. They are part of perception itself.",
       "For some people, these crossings aren't a metaphor. They happen on their own: letters carry color, sounds have shape, and time takes up space.",
     ],
-    sourceKeys: ["mitSynesthesia", "clevelandSynesthesia", "simner2006"],
-  },
-  {
-    id: "synesthesia-sparks",
-    eyebrow: "06 / SYNESTHESIA SPARKS",
-    navLabel: "Sparks",
-    title: "Synesthesia Sparks",
-    body: [],
     sourceKeys: ["simner2006", "mitSynesthesia", "clevelandSynesthesia"],
   },
   {
     id: "personal-transition",
-    eyebrow: "07 / NOW, MINE",
+    eyebrow: "06 / NOW, MINE",
     navLabel: "Now, Mine",
     title: "Now, Mine",
     subtitle: "From public examples to one person's sensory system.",
@@ -220,7 +212,7 @@ export const chapters: Chapter[] = [
   },
   {
     id: "synesthetes",
-    eyebrow: "08 / SYNESTHETES",
+    eyebrow: "07 / SYNESTHETES",
     navLabel: "Synesthetes",
     title: "Synesthetes and Key Figures",
     subtitle: "Artists, composers, writers, and researchers whose work makes cross-sensory perception visible.",
