@@ -37,7 +37,7 @@ type Frame = {
   id: string;
   pairIndex: number;
   photos: FramePhoto[];
-  phase: "opening" | "opening-transition" | "photos" | "outro";
+  phase: "opening" | "opening-transition" | "photos" | "outro" | "closing";
 };
 
 type StagePhoto = FramePhoto & {
@@ -49,8 +49,12 @@ const PRE_ROLL = 2;
 const POST_ROLL = 3;
 const PHOTO_LAYOUT_VERSION = 3;
 const FILTER_STAGE_BACKGROUND = "#f5f2eb";
-const FILTER_WHEEL_STEP_DEG = 360 / (inducerPairImages.length + 1);
+const EXHIBIT_STAGE_BACKGROUND = "#fffcf7";
+const FILTER_DISC_COUNT = inducerPairImages.length + 1;
+const FILTER_WHEEL_STEP_DEG = 360 / FILTER_DISC_COUNT;
 const PREVIEW_WHEEL_SCALE = 2600;
+const PURPLE_EXIT_HOLD_MS = 2400;
+const CLOSING_HOLD_MS = 2800;
 const OPENING_COPY =
   "Here is where the senses begin to cross. Each color is a filter, turning something seen into something felt.";
 
@@ -155,6 +159,12 @@ function buildFrames(images: InducerPairImage[]): Frame[] {
       phase: "outro",
     });
   });
+  frames.push({
+    id: "closing",
+    pairIndex: images.length - 1,
+    photos: [],
+    phase: "closing",
+  });
   return frames;
 }
 
@@ -221,6 +231,7 @@ export function InducerWheelSection({ chapter }: Props) {
   const activeIndexRef = useRef(activeIndex);
   const previewProgressRef = useRef(0);
   const wasIntersectingRef = useRef(false);
+  const bridgeHoldUntilRef = useRef(0);
   activeIndexRef.current = activeIndex;
   previewProgressRef.current = previewProgress;
   const maxIndex = Math.max(0, frames.length - 1);
@@ -248,19 +259,28 @@ export function InducerWheelSection({ chapter }: Props) {
     [frames, maxIndex],
   );
 
-  const consumeOpeningWheel = useCallback(
+  const consumeFilterWheel = useCallback(
     (index: number, event: WheelEvent) => {
-      if (frames[index]?.phase !== "opening") return false;
-      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return false;
+      const current = frames[index];
+      if (!current) return false;
 
-      const prev = previewProgressRef.current;
-      if (event.deltaY > 0 && prev >= 1) return false;
-      if (event.deltaY < 0 && prev <= 0) return false;
+      if (current.phase === "opening") {
+        if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return false;
+        const prev = previewProgressRef.current;
+        if (event.deltaY > 0 && prev >= 1) return false;
+        if (event.deltaY < 0 && prev <= 0) return false;
+        const next = Math.min(1, Math.max(0, prev + event.deltaY / PREVIEW_WHEEL_SCALE));
+        previewProgressRef.current = next;
+        setPreviewProgress(next);
+        return true;
+      }
 
-      const next = Math.min(1, Math.max(0, prev + event.deltaY / PREVIEW_WHEEL_SCALE));
-      previewProgressRef.current = next;
-      setPreviewProgress(next);
-      return true;
+      const isBridge =
+        current.phase === "closing" ||
+        (current.phase === "outro" &&
+          current.pairIndex === inducerPairImages.length - 1);
+      if (isBridge && performance.now() < bridgeHoldUntilRef.current) return true;
+      return false;
     },
     [frames],
   );
@@ -272,17 +292,41 @@ export function InducerWheelSection({ chapter }: Props) {
     onIndexChange: setFrameIndex,
     stepMs: 280,
     entryLockMs: 480,
-    consumeWheel: consumeOpeningWheel,
-    stepMsForIndex: (index) =>
-      frames[index]?.phase === "opening-transition"
-        ? 2100
-        : frames[index]?.phase === "outro"
-          ? 1300
-          : frames[index]?.phase === "photos" &&
-              frames[index]?.photos.every((photo) => photo.depth >= 2)
-            ? 220
-            : 280,
+    consumeWheel: consumeFilterWheel,
+    stepMsForIndex: (index) => {
+      const current = frames[index];
+      if (current?.phase === "opening-transition") return 2100;
+      if (current?.phase === "closing") return CLOSING_HOLD_MS;
+      if (
+        current?.phase === "outro" &&
+        current.pairIndex === inducerPairImages.length - 1
+      ) {
+        return PURPLE_EXIT_HOLD_MS;
+      }
+      if (current?.phase === "outro") return 1300;
+      if (
+        current?.phase === "photos" &&
+        current.photos.every((photo) => photo.depth >= 2)
+      ) {
+        return 220;
+      }
+      return 280;
+    },
   });
+
+  useEffect(() => {
+    const current = frames[activeIndex];
+    if (current?.phase === "closing") {
+      bridgeHoldUntilRef.current = performance.now() + CLOSING_HOLD_MS;
+      return;
+    }
+    if (
+      current?.phase === "outro" &&
+      current.pairIndex === inducerPairImages.length - 1
+    ) {
+      bridgeHoldUntilRef.current = performance.now() + PURPLE_EXIT_HOLD_MS;
+    }
+  }, [activeIndex, frames]);
 
   useEffect(() => {
     const stage = rootRef.current;
@@ -362,16 +406,22 @@ export function InducerWheelSection({ chapter }: Props) {
   const isOpening = frame.phase === "opening";
   const isOpeningTransition = frame.phase === "opening-transition";
   const isOpeningState = isOpening || isOpeningTransition;
+  const isClosing = frame.phase === "closing";
+  const isLastColorOutro =
+    frame.phase === "outro" &&
+    frame.pairIndex === inducerPairImages.length - 1;
   const isWheelStep = frame.phase === "outro" || isOpeningTransition;
-  const isFinalOutro =
-    frame.phase === "outro" && frame.pairIndex === inducerPairImages.length - 1;
   const isPhotoHandoff =
     frame.phase === "photos" &&
     frame.photos.length > 0 &&
     (frame.photos.every((photo) => photo.depth >= 2) ||
       frame.photos.every((photo) => photo.depth < -2));
   const currentWheelIndex =
-    isOpening || isOpeningTransition ? 0 : frame.pairIndex + 1;
+    isOpening || isOpeningTransition
+      ? 0
+      : isClosing
+        ? FILTER_DISC_COUNT
+        : frame.pairIndex + 1;
   const boundaryStart = currentWheelIndex * FILTER_WHEEL_STEP_DEG;
   const boundaryEnd = (currentWheelIndex + 1) * FILTER_WHEEL_STEP_DEG;
   const wheelFrom =
@@ -412,23 +462,25 @@ export function InducerWheelSection({ chapter }: Props) {
     <section
       id={chapter.id}
       data-snap-section
-      data-nav={isOpeningState ? "on-light" : navTone(pair.hex)}
-      className="narrative-chapter narrative-chapter--filter-disc min-h-[100svh] scroll-mt-0"
+      data-nav={isOpeningState || isClosing || isLastColorOutro ? "on-light" : navTone(pair.hex)}
+      className={`narrative-chapter narrative-chapter--filter-disc min-h-[100svh] scroll-mt-0${isClosing ? " is-to-exhibit" : ""}`}
       aria-labelledby={`${chapter.id}-title`}
       style={
         {
           "--pair-hex": pair.hex,
-          "--pair-ink": isOpeningState
-            ? "#3f4549"
-            : pair.colorLabel === "White"
-              ? "#686d72"
-              : "#ffffff",
+          "--stage-bg": isClosing ? EXHIBIT_STAGE_BACKGROUND : FILTER_STAGE_BACKGROUND,
+          "--pair-ink":
+            isOpeningState || isClosing || isLastColorOutro
+              ? "#3f4549"
+              : pair.colorLabel === "White"
+                ? "#686d72"
+                : "#ffffff",
         } as CSSProperties
       }
     >
       <div
         ref={rootRef}
-        className={`join-float${stageVisible ? " is-stage-visible" : ""}`}
+        className={`join-float${stageVisible ? " is-stage-visible" : ""}${isClosing ? " is-to-exhibit" : ""}`}
         data-wheel-sequence
         data-wheel-at={activeIndex <= 0 ? "start" : activeIndex >= maxIndex ? "end" : "mid"}
         tabIndex={0}
@@ -467,7 +519,7 @@ export function InducerWheelSection({ chapter }: Props) {
             </div>
           ))}
         </div>
-        {isWheelStep && outgoingPair ? (
+        {isWheelStep && outgoingPair && !isLastColorOutro ? (
           <div
             className="join-float__transition-copy-mask"
             aria-hidden="true"
@@ -502,7 +554,7 @@ export function InducerWheelSection({ chapter }: Props) {
             </div>
           </div>
         ) : null}
-        {isWheelStep && (isOpeningTransition || transitionPair) ? (
+        {isWheelStep && !isLastColorOutro && (isOpeningTransition || transitionPair) ? (
           <div
             className={`join-float__transition-copy-mask${isOpeningTransition ? " is-opening-transition" : ""}`}
             aria-hidden="true"
@@ -541,7 +593,7 @@ export function InducerWheelSection({ chapter }: Props) {
             </div>
           </div>
         ) : null}
-        {isFinalOutro ? (
+        {isClosing ? (
           <div className="join-float__closing-copy" aria-live="polite">
             <p className="join-float__closing-title m-0">
               What you just felt, artists have long explored.
@@ -577,7 +629,7 @@ export function InducerWheelSection({ chapter }: Props) {
         <div className="join-float__veil" aria-hidden="true" />
 
         <div
-          className={`join-float__copy${isOpeningState || frame.phase === "photos" ? " is-visible" : ""}${isOpeningTransition ? direction > 0 ? " is-opening-copy-leaving" : " is-opening-copy-returning" : ""}${frame.phase === "outro" ? " is-transition-hidden" : ""}${isPhotoHandoff ? " is-transition-handoff" : ""}`}
+          className={`join-float__copy${isOpeningState || frame.phase === "photos" ? " is-visible" : ""}${isOpeningTransition ? direction > 0 ? " is-opening-copy-leaving" : " is-opening-copy-returning" : ""}${frame.phase === "outro" || isClosing ? " is-transition-hidden" : ""}${isPhotoHandoff ? " is-transition-handoff" : ""}`}
           aria-live="polite"
         >
           {isOpeningState ? (

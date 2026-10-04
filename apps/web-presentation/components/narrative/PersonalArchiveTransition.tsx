@@ -1,66 +1,177 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type ReactNode,
+} from "react";
 
 import { useSnapSectionWheelSequence } from "./useSnapSectionWheelSequence";
 
 type TransitionState = "before" | "visible" | "after";
+type BridgeVariant = "dark-to-light" | "light-to-green";
 
 type BridgeProps = {
   children: ReactNode;
   ariaLabel: string;
-  variant: "dark-to-light" | "light-to-green";
+  variant: BridgeVariant;
 };
 
-const DARK_TO_LIGHT_HOLD_STEPS = 5;
-const DARK_TO_LIGHT_STEP_MS = 1100;
+const HOLD_STEPS = 2;
+const HOLD_STEP_MS = 800;
+const WASH_DURATION_MS = 1400;
+const COPY_SETTLE_MS = 1100;
+
+const WASH = {
+  "dark-to-light": {
+    fromBg: "#71557a",
+    toBg: "#fffcf7",
+    fromInk: "#f5f2ec",
+    toInk: "#6b6560",
+  },
+  "light-to-green": {
+    fromBg: "#fffcf7",
+    toBg: "#7e8c54",
+    fromInk: "#6b6560",
+    toInk: "#f5f7fb",
+  },
+} as const;
 
 export function NarrativeBridgeTransition({
   children,
   ariaLabel,
   variant,
 }: BridgeProps) {
+  const palette = WASH[variant];
   const sectionRef = useRef<HTMLElement>(null);
+  const visibleRef = useRef(false);
+  const washStartedRef = useRef(false);
+  const washUntilRef = useRef(0);
+  const washTimerRef = useRef(0);
+  const washUnlockTimerRef = useRef(0);
   const [state, setState] = useState<TransitionState>("before");
   const [holdIndex, setHoldIndex] = useState(0);
-  const holdCount = variant === "dark-to-light" ? DARK_TO_LIGHT_HOLD_STEPS : 1;
+  const [allowFade, setAllowFade] = useState(false);
+  const [bg, setBg] = useState(palette.fromBg);
+  const [ink, setInk] = useState(palette.fromInk);
+
+  const consumeBridgeWheel = useCallback(() => {
+    return performance.now() < washUntilRef.current;
+  }, []);
+
+  const onHoldIndexChange = useCallback((index: number) => {
+    if (performance.now() < washUntilRef.current) {
+      setHoldIndex(0);
+      return;
+    }
+    setHoldIndex(index);
+  }, []);
 
   useSnapSectionWheelSequence({
     rootRef: sectionRef,
-    itemCount: holdCount,
+    itemCount: HOLD_STEPS,
     activeIndex: holdIndex,
-    onIndexChange: setHoldIndex,
-    stepMs: variant === "dark-to-light" ? DARK_TO_LIGHT_STEP_MS : 420,
+    onIndexChange: onHoldIndexChange,
+    stepMs: HOLD_STEP_MS,
+    entryLockMs: 900,
+    consumeWheel: consumeBridgeWheel,
   });
 
   useEffect(() => {
     const section = sectionRef.current;
     if (!section) return;
 
+    const startWash = () => {
+      if (washStartedRef.current) return;
+      washStartedRef.current = true;
+      washUntilRef.current =
+        performance.now() + COPY_SETTLE_MS + WASH_DURATION_MS + 500;
+      window.clearTimeout(washTimerRef.current);
+      window.clearTimeout(washUnlockTimerRef.current);
+      washTimerRef.current = window.setTimeout(() => {
+        setAllowFade(true);
+        setBg(palette.toBg);
+        setInk(palette.toInk);
+        washUnlockTimerRef.current = window.setTimeout(() => {
+          washUntilRef.current = performance.now() + 500;
+          setHoldIndex(HOLD_STEPS - 1);
+        }, WASH_DURATION_MS);
+      }, COPY_SETTLE_MS);
+    };
+
     const observer = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting && entry.intersectionRatio >= 0.35) {
-          setState("visible");
+        if (!entry) return;
+
+        if (entry.isIntersecting && entry.intersectionRatio >= 0.32) {
+          if (!visibleRef.current) {
+            visibleRef.current = true;
+            setState("visible");
+            setAllowFade(false);
+            setHoldIndex(0);
+            setBg(palette.fromBg);
+            setInk(palette.fromInk);
+            washUntilRef.current =
+              performance.now() + COPY_SETTLE_MS + WASH_DURATION_MS + 500;
+          }
+
+          const pageSettled =
+            entry.intersectionRatio >= 0.55 ||
+            Math.abs(entry.boundingClientRect.top) < 48;
+          if (pageSettled) startWash();
           return;
         }
-        setState(entry.boundingClientRect.top < 0 ? "after" : "before");
+
+        if (!entry.isIntersecting || entry.intersectionRatio < 0.18) {
+          visibleRef.current = false;
+          washStartedRef.current = false;
+          window.clearTimeout(washTimerRef.current);
+          window.clearTimeout(washUnlockTimerRef.current);
+          washUntilRef.current = 0;
+          setAllowFade(false);
+          setHoldIndex(0);
+          if (entry.boundingClientRect.top < 0) {
+            setState("after");
+            setBg(palette.toBg);
+            setInk(palette.toInk);
+          } else {
+            setState("before");
+            setBg(palette.fromBg);
+            setInk(palette.fromInk);
+          }
+        }
       },
-      { threshold: [0, 0.35, 0.65] },
+      { threshold: [0, 0.18, 0.32, 0.5, 0.72, 0.9] },
     );
 
     observer.observe(section);
-    return () => observer.disconnect();
-  }, []);
+    return () => {
+      window.clearTimeout(washTimerRef.current);
+      window.clearTimeout(washUnlockTimerRef.current);
+      observer.disconnect();
+    };
+  }, [palette]);
 
   return (
     <section
       ref={sectionRef}
-      className={`personal-archive-transition personal-archive-transition--${variant}`}
+      className={`personal-archive-transition personal-archive-transition--${variant}${
+        allowFade ? " is-washing" : ""
+      }`}
       data-snap-section
       data-wheel-sequence
-      data-wheel-at={holdIndex <= 0 ? "start" : holdIndex >= holdCount - 1 ? "end" : "mid"}
+      data-wheel-at={holdIndex <= 0 ? "start" : holdIndex >= HOLD_STEPS - 1 ? "end" : "mid"}
       data-transition-state={state}
       aria-label={ariaLabel}
+      style={
+        {
+          "--bridge-bg": bg,
+          "--bridge-ink": ink,
+        } as CSSProperties
+      }
     >
       <div className="personal-archive-transition__stage">
         <p className="personal-archive-transition__copy m-0">

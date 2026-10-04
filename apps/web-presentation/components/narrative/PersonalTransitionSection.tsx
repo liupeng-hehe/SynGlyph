@@ -6,6 +6,7 @@ import type { Chapter } from "@/content/synesthesiaContent";
 
 import { PersonalMineReading } from "./PersonalMineReading";
 import { SourcesDrawer } from "./SourcesDrawer";
+import { useSnapSectionWheelSequence } from "./useSnapSectionWheelSequence";
 
 type Props = {
   chapter: Chapter;
@@ -15,6 +16,16 @@ export function PersonalTransitionSection({ chapter }: Props) {
   const sectionRef = useRef<HTMLElement>(null);
   const [panelVisible, setPanelVisible] = useState(false);
   const [switchOn, setSwitchOn] = useState(false);
+  const [holdIndex, setHoldIndex] = useState(0);
+
+  useSnapSectionWheelSequence({
+    rootRef: sectionRef,
+    itemCount: 1,
+    activeIndex: holdIndex,
+    onIndexChange: setHoldIndex,
+    stepMs: 700,
+    entryLockMs: 480,
+  });
 
   useEffect(() => {
     const section = sectionRef.current;
@@ -38,6 +49,8 @@ export function PersonalTransitionSection({ chapter }: Props) {
       ref={sectionRef}
       id={chapter.id}
       data-snap-section
+      data-wheel-sequence
+      data-wheel-at="end"
       className={`personal-mine narrative-chapter narrative-chapter--plain min-h-[100svh] scroll-mt-0${switchOn ? " personal-mine--synesthetic" : ""}`}
       aria-labelledby={`${chapter.id}-title`}
     >

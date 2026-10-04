@@ -12,10 +12,9 @@ import { useSnapSectionWheelSequence } from "./useSnapSectionWheelSequence";
 const PROSE_PINK = "#ea9dac";
 const MINE_FULL_FROM = "Another layer of experience";
 const GOO_MS = 1680;
-const FLOW_MS = 720;
-const EXIT_LOCK_MS = 1250;
-const HOLD_MS = 1200;
-const FIRST_PARA_HOLD_MS = 2240;
+const FLOW_MS = 500;
+const EXIT_LOCK_MS = 1500;
+const LAST_LINE_HOLD_MS = 3200;
 const LINE_STEP_MS = 760;
 const BLUR_START = 13.5;
 const BLUR_HOLD = 8.6;
@@ -216,6 +215,7 @@ export function OpeningProseSection({ chapter }: Props) {
   const isExitingRef = useRef(false);
   const pendingIndexRef = useRef<number | null>(null);
   const exitTimerRef = useRef(0);
+  const lastLineHoldUntilRef = useRef(0);
   const [activeIndex, setActiveIndex] = useState(0);
   const [exitingParagraph, setExitingParagraph] = useState<number | null>(null);
   const [revealIncoming, setRevealIncoming] = useState(true);
@@ -267,16 +267,30 @@ export function OpeningProseSection({ chapter }: Props) {
     return Boolean(line && (!next || next.paragraph !== line.paragraph));
   }, [lines]);
 
+  const consumeProseWheel = useCallback(
+    (index: number) => {
+      if (!isLastLineOfParagraph(index)) return false;
+      const line = lines[index];
+      const next = lines[index + 1];
+      const hasNextParagraph = Boolean(next && next.paragraph !== line?.paragraph);
+      if (hasNextParagraph) return true;
+      return performance.now() < lastLineHoldUntilRef.current;
+    },
+    [isLastLineOfParagraph, lines],
+  );
+
   useSnapSectionWheelSequence({
     rootRef,
     itemCount: lines.length,
     activeIndex,
     onIndexChange: setFrameIndex,
     stepMs: LINE_STEP_MS,
+    entryLockMs: 640,
+    consumeWheel: consumeProseWheel,
     stepMsForIndex: (nextIndex) => {
       if (paragraphStepRef.current) return EXIT_LOCK_MS;
       if (isLastLineOfParagraph(nextIndex)) {
-        return lines[nextIndex]?.paragraph === 0 ? FIRST_PARA_HOLD_MS : HOLD_MS;
+        return LAST_LINE_HOLD_MS;
       }
       return LINE_STEP_MS;
     },
@@ -442,14 +456,20 @@ export function OpeningProseSection({ chapter }: Props) {
   }, [activeIndex, exitingParagraph, reduceMotion, revealIncoming, startGoo]);
 
   useEffect(() => {
+    if (isLastLineOfParagraph(activeIndex)) {
+      lastLineHoldUntilRef.current = performance.now() + LAST_LINE_HOLD_MS;
+    }
+  }, [activeIndex, isLastLineOfParagraph]);
+
+  useEffect(() => {
     if (reduceMotion || exitingParagraph !== null || isExitingRef.current) return;
     const line = lines[activeIndex];
     const next = lines[activeIndex + 1];
-    if (!line || line.paragraph !== 0 || !next || next.paragraph === line.paragraph) return;
+    if (!line || !next || next.paragraph === line.paragraph) return;
 
     const timer = window.setTimeout(() => {
       setFrameIndex(activeIndex + 1);
-    }, FIRST_PARA_HOLD_MS);
+    }, LAST_LINE_HOLD_MS);
     return () => window.clearTimeout(timer);
   }, [activeIndex, exitingParagraph, lines, reduceMotion, setFrameIndex]);
 

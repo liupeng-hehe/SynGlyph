@@ -5,7 +5,7 @@ export function snapSections(): HTMLElement[] {
 export function pickDominantSnapSection(): HTMLElement | null {
   const vh = window.innerHeight;
   let best: HTMLElement | null = null;
-  let bestVisible = -1;
+  let bestScore = -1;
 
   for (const section of snapSections()) {
     const rect = section.getBoundingClientRect();
@@ -13,8 +13,14 @@ export function pickDominantSnapSection(): HTMLElement | null {
       0,
       Math.min(rect.bottom, vh) - Math.max(rect.top, 0),
     );
-    if (visible > bestVisible) {
-      bestVisible = visible;
+    if (visible <= 0) continue;
+
+    const isGallery = Boolean(section.querySelector("[data-scroll-gallery-track]"));
+    const alignment = 1 - Math.min(1, Math.abs(rect.top) / vh);
+    const score = visible + (isGallery ? 0 : alignment * vh * 0.55);
+
+    if (score > bestScore) {
+      bestScore = score;
       best = section;
     }
   }

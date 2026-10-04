@@ -55,11 +55,11 @@ function snapTargets(): HTMLElement[] {
   return [...document.querySelectorAll<HTMLElement>("[data-snap-section]")];
 }
 
-/** Pick the chapter occupying the most viewport — stable full-screen snap. */
+/** Prefer a parked 100svh page over a tall gallery that only peeks more pixels. */
 function pickSnapSection(sections: HTMLElement[]): HTMLElement | null {
   const vh = window.innerHeight;
   let best: HTMLElement | null = null;
-  let bestVisible = -1;
+  let bestScore = -1;
 
   for (const section of sections) {
     const rect = section.getBoundingClientRect();
@@ -67,8 +67,14 @@ function pickSnapSection(sections: HTMLElement[]): HTMLElement | null {
       0,
       Math.min(rect.bottom, vh) - Math.max(rect.top, 0),
     );
-    if (visible > bestVisible) {
-      bestVisible = visible;
+    if (visible <= 0) continue;
+
+    const isGallery = Boolean(section.querySelector("[data-scroll-gallery-track]"));
+    const alignment = 1 - Math.min(1, Math.abs(rect.top) / vh);
+    const score = visible + (isGallery ? 0 : alignment * vh * 0.55);
+
+    if (score > bestScore) {
+      bestScore = score;
       best = section;
     }
   }
@@ -165,10 +171,15 @@ export function SmoothScrollProvider({ children }: Props) {
 
       snapLockRef.current = true;
       if (lenisRef.current) {
+        lenisRef.current.options.wheelMultiplier = 0;
         lenisRef.current.scrollTo(el, {
           offset: options?.offset ?? 0,
           duration: 1.25,
           onComplete: () => {
+            lenisRef.current &&
+              (lenisRef.current.options.wheelMultiplier = galleryModeRef.current
+                ? GALLERY_WHEEL
+                : DEFAULT_WHEEL);
             snapLockRef.current = false;
           },
         });
