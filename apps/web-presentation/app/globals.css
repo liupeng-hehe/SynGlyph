@@ -987,7 +987,7 @@ body {
 .join-float__opening-copy {
   max-width: 50rem;
   margin-inline: auto !important;
-  font-family: "TimesNow-SemiLight", "Times Now SemiLight", "Times Now", var(--font-prose), "Times New Roman", Times, serif;
+  font-family: var(--font-prose), Georgia, serif;
   font-size: clamp(1.55rem, 2.5vw, 2.25rem);
   font-weight: 400;
   line-height: 1.35;
@@ -1011,7 +1011,7 @@ body {
 
 .join-float__closing-title,
 .join-float__closing-subtitle {
-  font-family: "TimesNow-SemiLight", "Times Now SemiLight", "Times Now", var(--font-prose), "Times New Roman", Times, serif;
+  font-family: var(--font-prose), Georgia, serif;
 }
 
 .join-float__closing-title {
@@ -1077,7 +1077,7 @@ body {
 }
 
 .join-float__title {
-  font-family: "TimesNow-SemiLight", "Times Now SemiLight", "Times Now", var(--font-prose), "Times New Roman", Times, serif;
+  font-family: var(--font-prose), Georgia, serif;
   font-size: clamp(2.2rem, 3.8vw, 3.45rem);
   font-weight: 400;
   letter-spacing: -0.028em;
@@ -1093,7 +1093,7 @@ body {
 }
 
 .join-float__line {
-  font-family: "TimesNow-SemiLight", "Times Now SemiLight", "Times Now", var(--font-prose), "Times New Roman", Times, serif;
+  font-family: var(--font-prose), Georgia, serif;
   font-size: clamp(0.94rem, 1.08vw, 1.1rem);
   font-weight: 400;
   letter-spacing: 0.006em;
@@ -2147,7 +2147,7 @@ body {
   width: min(40rem, calc(100% - 2rem));
   margin: 0;
   transform: translateX(-50%);
-  font-family: "TimesNow-SemiLight", "Times Now SemiLight", "Times Now", var(--font-prose), "Times New Roman", Times, serif;
+  font-family: var(--font-prose), Georgia, serif;
   font-size: clamp(1.05rem, 1.7vw, 1.35rem);
   font-weight: 400;
   letter-spacing: -0.012em;
@@ -2711,18 +2711,6 @@ body {
 
 /* --- Opening prose (screen 2): liquid line reveal --- */
 
-@font-face {
-  font-family: "TimesNow-SemiLight";
-  src:
-    local("Times Now SemiLight"),
-    local("TimesNow-SemiLight"),
-    local("Times Now"),
-    url("/fonts/TimesNowSemiLight.woff2") format("woff2");
-  font-weight: 300;
-  font-style: normal;
-  font-display: swap;
-}
-
 .opening-prose,
 .opening-prose.narrative-chapter {
   --prose-ink: #ea9dac;
@@ -2769,7 +2757,7 @@ body {
   align-items: center;
   width: min(100%, 28ch);
   margin: 0 auto;
-  font-family: var(--font-prose), "Times New Roman", Times, serif;
+  font-family: var(--font-prose), Georgia, serif;
   font-size: clamp(1.35rem, 4.2vw, 2.85rem);
   font-weight: 300;
   text-align: center;
@@ -2800,7 +2788,7 @@ body {
 }
 
 .opening-prose__para-block--times {
-  font-family: "TimesNow-SemiLight", "Times Now SemiLight", "Times Now", var(--font-prose), "Times New Roman", Times, serif;
+  font-family: var(--font-prose), Georgia, serif;
   font-size: 0.9em;
 }
 
@@ -2832,7 +2820,7 @@ body {
 
 .opening-prose__line--times,
 .opening-prose__para--times {
-  font-family: "TimesNow-SemiLight", "Times Now SemiLight", "Times Now", var(--font-prose), "Times New Roman", Times, serif;
+  font-family: var(--font-prose), Georgia, serif;
 }
 
 .opening-prose__mine-word,
@@ -2969,7 +2957,7 @@ body {
   height: 100%;
   padding: clamp(2.6rem, 6.5vh, 4.2rem) clamp(1.5rem, 4vw, 3rem) clamp(1.15rem, 2.8vh, 2.25rem);
   box-sizing: border-box;
-  font-family: "TimesNow-SemiLight", "Times Now SemiLight", "Times Now", var(--font-prose), "Times New Roman", Times, serif;
+  font-family: var(--font-prose), Georgia, serif;
 }
 
 .personal-mine .font-display,
@@ -3286,7 +3274,7 @@ body {
 
 .personal-archive-transition__copy {
   max-width: 28ch;
-  font-family: "TimesNow-SemiLight", "Times Now SemiLight", "Times Now", var(--font-prose), "Times New Roman", Times, serif;
+  font-family: var(--font-prose), Georgia, serif;
   text-align: center;
   font-size: clamp(1.35rem, 4.2vw, 2.85rem);
   font-weight: 300;

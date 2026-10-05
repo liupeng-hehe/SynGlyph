@@ -1,27 +1,30 @@
 import type { Metadata } from "next";
-import { DM_Sans, Fraunces, Newsreader } from "next/font/google";
+import localFont from "next/font/local";
 
 import { ExhibitionNav } from "@/components/ui/ExhibitionNav";
 
 import "./globals.css";
 
-const display = Fraunces({
-  subsets: ["latin"],
+const display = localFont({
+  src: "./fonts/Fraunces-latin-wght.woff2",
   variable: "--font-display",
-  weight: ["400", "500", "600", "700"],
+  weight: "400 700",
+  display: "swap",
 });
 
-const body = DM_Sans({
-  subsets: ["latin"],
+const body = localFont({
+  src: "./fonts/DMSans-latin-wght.woff2",
   variable: "--font-body",
-  weight: ["400", "500", "600", "700"],
+  weight: "400 700",
+  display: "swap",
 });
 
-/** Closest licensed Times-cut to JHA Times Now (page 2 prose). */
-const prose = Newsreader({
-  subsets: ["latin"],
+/** Newsreader: page 2 and Now, Mine reading text. */
+const prose = localFont({
+  src: "./fonts/Newsreader-latin-wght.woff2",
   variable: "--font-prose",
-  weight: ["200", "300", "400"],
+  weight: "200 400",
+  display: "swap",
 });
 
 export const metadata: Metadata = {
