@@ -6,6 +6,7 @@ import {
 } from "@/content/scrollGallerySlides";
 
 import { ChapterShell } from "./ChapterShell";
+import { ClosingCodaSection } from "./ClosingCodaSection";
 import { ExhibitionChapter } from "./ExhibitionChapter";
 import { InducerWheelSection } from "./InducerWheelSection";
 import { OpeningEditorialHero } from "./OpeningEditorialHero";
@@ -65,7 +66,10 @@ export function NarrativeExperience() {
                 <PersonalArchiveTransition />
               </>
             ) : chapter.id === "synesthetes" ? (
-              <SynestheteArchiveSection chapter={chapter} />
+              <>
+                <SynestheteArchiveSection chapter={chapter} />
+                <ClosingCodaSection />
+              </>
             ) : (
               <ChapterShell chapter={chapter} index={index} />
             )}

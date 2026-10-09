@@ -30,6 +30,14 @@ export function SectionIndicator({ items }: Props) {
 
     const syncActiveSection = () => {
       const focusY = window.innerHeight * 0.5;
+      const coda = document.getElementById("coda");
+      if (coda) {
+        const rect = coda.getBoundingClientRect();
+        if (rect.top <= focusY && rect.bottom > focusY) {
+          setActiveId("coda");
+          return;
+        }
+      }
       const active = sections.find((section) => {
         const rect = section.getBoundingClientRect();
         return rect.top <= focusY && rect.bottom > focusY;
@@ -81,7 +89,7 @@ export function SectionIndicator({ items }: Props) {
           ? false
           : lightNavIds.has(activeId);
 
-  if (activeId === "opening") return null;
+  if (activeId === "opening" || activeId === "coda") return null;
 
   return (
     <aside className={`section-indicator${isLightNav ? " section-indicator--on-dark" : ""}`} aria-label="Section navigation">

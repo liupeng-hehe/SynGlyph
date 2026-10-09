@@ -11,13 +11,14 @@ import { useSnapSectionWheelSequence } from "./useSnapSectionWheelSequence";
 
 const PROSE_PINK = "#ea9dac";
 const MINE_FULL_FROM = "Another layer of experience";
-const GOO_MS = 1680;
-const FLOW_MS = 500;
-const EXIT_LOCK_MS = 480;
-const LAST_LINE_HOLD_MS = 3200;
-const LINE_STEP_MS = 760;
-const BLUR_START = 13.5;
-const BLUR_HOLD = 8.6;
+const GOO_MS = 780;
+const FLOW_MS = 360;
+const EXIT_LOCK_MS = 320;
+const LAST_LINE_HOLD_MS = 720;
+const LINE_STEP_MS = 420;
+const FLOW_LERP = 0.16;
+const BLUR_START = 8;
+const BLUR_HOLD = 5.2;
 const GOO_AMP = 34;
 const GOO_OFF = -13;
 const ARRIVE_END = 0.22;
@@ -208,6 +209,9 @@ export function OpeningProseSection({ chapter }: Props) {
   const gooStartedRef = useRef<number[]>([]);
   const gooRafRef = useRef(0);
   const flowReadyRef = useRef(false);
+  const targetYRef = useRef(0);
+  const displayYRef = useRef(0);
+  const flowAnimRef = useRef(0);
   const activeIndexRef = useRef(0);
   const paragraphStepRef = useRef(false);
   const enterFromExitRef = useRef(false);
@@ -296,7 +300,7 @@ export function OpeningProseSection({ chapter }: Props) {
     activeIndex,
     onIndexChange: setFrameIndex,
     stepMs: LINE_STEP_MS,
-    entryLockMs: 640,
+    entryLockMs: 360,
     consumeWheel: consumeProseWheel,
     stepMsForIndex: (nextIndex) => {
       if (paragraphStepRef.current) return EXIT_LOCK_MS;
@@ -351,14 +355,43 @@ export function OpeningProseSection({ chapter }: Props) {
     window.requestAnimationFrame(() => setFlowReady(true));
   }, []);
 
-  const setFlowY = useCallback((y: number) => {
+  const paintFlowY = useCallback((y: number) => {
     const flow = flowRef.current;
     if (!flow) return;
     flow.style.transform = `translate3d(0, ${y.toFixed(2)}px, 0)`;
     markFlowReady();
   }, [markFlowReady]);
 
-  const alignShownBlock = useCallback((index: number) => {
+  const tickFlow = useCallback(() => {
+    const next = lerp(displayYRef.current, targetYRef.current, FLOW_LERP);
+    if (Math.abs(next - targetYRef.current) < 0.35) {
+      displayYRef.current = targetYRef.current;
+      paintFlowY(displayYRef.current);
+      flowAnimRef.current = 0;
+      return;
+    }
+    displayYRef.current = next;
+    paintFlowY(next);
+    flowAnimRef.current = window.requestAnimationFrame(tickFlow);
+  }, [paintFlowY]);
+
+  const setFlowY = useCallback((y: number, instant = false) => {
+    targetYRef.current = y;
+    if (instant || reduceMotion) {
+      if (flowAnimRef.current) {
+        window.cancelAnimationFrame(flowAnimRef.current);
+        flowAnimRef.current = 0;
+      }
+      displayYRef.current = y;
+      paintFlowY(y);
+      return;
+    }
+    if (!flowAnimRef.current) {
+      flowAnimRef.current = window.requestAnimationFrame(tickFlow);
+    }
+  }, [paintFlowY, reduceMotion, tickFlow]);
+
+  const alignShownBlock = useCallback((index: number, instant = false) => {
     const stage = stageRef.current;
     const current = lines[index];
     if (!stage || !current) return;
@@ -366,8 +399,12 @@ export function OpeningProseSection({ chapter }: Props) {
     const first = lineRefs.current[shown[0]?.globalIndex ?? -1];
     const last = lineRefs.current[shown[shown.length - 1]?.globalIndex ?? -1];
     if (!first || !last) return;
+    const lineHeight = (node: HTMLElement) => {
+      const inner = node.querySelector(".opening-prose__line-inner") as HTMLElement | null;
+      return inner?.scrollHeight || node.offsetHeight;
+    };
     const top = first.offsetTop;
-    const bottom = last.offsetTop + last.offsetHeight;
+    const bottom = last.offsetTop + lineHeight(last);
     const mid = (top + bottom) / 2;
     const blockH = bottom - top;
     const safeTop = stage.clientHeight * 0.06;
@@ -380,7 +417,7 @@ export function OpeningProseSection({ chapter }: Props) {
       if (top + y < safeTop) y = safeTop - top;
       if (bottom + y > safeBottom) y = safeBottom - bottom;
     }
-    setFlowY(y);
+    setFlowY(y, instant);
   }, [lines, setFlowY]);
 
   const alignExit = useCallback((paragraph: number) => {
@@ -388,13 +425,15 @@ export function OpeningProseSection({ chapter }: Props) {
     const paraLines = lines.filter((line) => line.paragraph === paragraph);
     const last = lineRefs.current[paraLines[paraLines.length - 1]?.globalIndex ?? -1];
     if (!stage || !last) return;
-    setFlowY(-(last.offsetTop + last.offsetHeight) - stage.clientHeight * 0.1);
+    const inner = last.querySelector(".opening-prose__line-inner") as HTMLElement | null;
+    const height = inner?.scrollHeight || last.offsetHeight;
+    setFlowY(-(last.offsetTop + height) - stage.clientHeight * 0.08);
   }, [lines, setFlowY]);
 
   const snapToBlock = useCallback((index: number) => {
     const flow = flowRef.current;
     flow?.classList.remove("is-ready");
-    alignShownBlock(index);
+    alignShownBlock(index, true);
     if (flow) void flow.offsetWidth;
     if (!reduceMotion) flow?.classList.add("is-ready");
   }, [alignShownBlock, reduceMotion]);
@@ -472,8 +511,8 @@ export function OpeningProseSection({ chapter }: Props) {
 
   useEffect(() => {
     if (isLastLineOfParagraph(activeIndex)) {
-      const appearMs = reduceMotion ? 0 : GOO_MS;
-      lastLineHoldUntilRef.current =
+    const appearMs = reduceMotion ? 0 : Math.round(GOO_MS * 0.42);
+    lastLineHoldUntilRef.current =
         performance.now() + appearMs + holdMsForIndex(activeIndex);
       return;
     }
@@ -485,7 +524,7 @@ export function OpeningProseSection({ chapter }: Props) {
     if (!arrivedForwardRef.current) return;
     if (!isLastLineOfParagraph(activeIndex) || !hasNextParagraph(activeIndex)) return;
 
-    const appearMs = reduceMotion ? 0 : GOO_MS;
+    const appearMs = reduceMotion ? 0 : Math.round(GOO_MS * 0.42);
     const timer = window.setTimeout(() => {
       setFrameIndex(activeIndex + 1);
     }, appearMs + LAST_LINE_HOLD_MS);
@@ -508,6 +547,10 @@ export function OpeningProseSection({ chapter }: Props) {
       if (gooRafRef.current) {
         window.cancelAnimationFrame(gooRafRef.current);
         gooRafRef.current = 0;
+      }
+      if (flowAnimRef.current) {
+        window.cancelAnimationFrame(flowAnimRef.current);
+        flowAnimRef.current = 0;
       }
     };
   }, []);
@@ -593,9 +636,11 @@ export function OpeningProseSection({ chapter }: Props) {
                         className={`opening-prose__line m-0${line.paragraph === 1 ? " opening-prose__line--mine" : ""}${line.paragraph === 1 ? " opening-prose__line--times" : ""}${shown ? " is-in" : ""}`}
                         aria-hidden={shown ? "false" : "true"}
                       >
-                        {minePlan
-                          ? renderMineLine(line.text, (charIndex) => revealAt(minePlan, line.localIndex, charIndex))
-                          : line.text}
+                        <span className="opening-prose__line-inner">
+                          {minePlan
+                            ? renderMineLine(line.text, (charIndex) => revealAt(minePlan, line.localIndex, charIndex))
+                            : line.text}
+                        </span>
                       </Tag>
                     );
                   })}
