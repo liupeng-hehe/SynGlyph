@@ -40,7 +40,7 @@ export function SynestheteArchiveSection({ chapter }: Props) {
       items={synestheteItems}
       sectionClassName="wordblue-archive wordblue-archive--synesthetes"
       ariaLabel={chapter.title}
-      hint="Scroll to move through the figures."
+      hint=""
     />
   );
 }

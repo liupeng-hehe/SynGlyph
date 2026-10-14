@@ -52,13 +52,6 @@ export function OpeningEditorialHero({ chapter }: Props) {
                   <Link href="/gallery" className="wordblue-hero__explore-link font-body" role="menuitem">
                     Archive
                   </Link>
-                  <Link
-                    href="/build-your-own/colorrec"
-                    className="wordblue-hero__explore-link font-body"
-                    role="menuitem"
-                  >
-                    Color studio
-                  </Link>
                 </div>
               ) : null}
             </div>

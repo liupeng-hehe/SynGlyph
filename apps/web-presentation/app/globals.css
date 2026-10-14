@@ -2885,49 +2885,75 @@ body {
   }
 }
 
-/* --- Closing coda --- */
+/* --- Closing footer under the last figure --- */
 
 .closing-coda {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 100svh;
-  padding: clamp(2rem, 6vh, 4.5rem) clamp(1.5rem, 6vw, 4rem);
-  background: #7e8c54;
-  color: #f5f7fb;
+  padding: clamp(2.5rem, 7vh, 4rem) clamp(1.5rem, 4vw, 3rem)
+    clamp(2.75rem, 8vh, 4.5rem) clamp(2.25rem, 5vw, 3.75rem);
+  background: #feffeb;
+  color: #f7f4ee;
 }
 
-.closing-coda__inner {
-  width: min(100%, 38rem);
+.closing-coda__layout {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: end;
+  gap: clamp(1.5rem, 4vw, 3.5rem);
+  width: min(100%, 76rem);
+  margin: 0;
+}
+
+.closing-coda__brand-col {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.85rem;
+}
+
+.closing-coda__brand {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.closing-coda__logo {
+  display: block;
+  width: auto;
+  height: clamp(6.4rem, 12vw, 9.5rem);
+  aspect-ratio: 2133 / 3094;
+  background: #7e8c54;
+  -webkit-mask: url("/collab/logo/wordblue-logo.png") left center / contain no-repeat;
+  mask: url("/collab/logo/wordblue-logo.png") left center / contain no-repeat;
+}
+
+.closing-coda__copy {
+  max-width: none;
+  padding-bottom: 0.15rem;
   text-align: center;
 }
 
-.closing-coda__kicker {
-  font-size: 0.68rem;
-  font-weight: 600;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  color: rgb(245 247 251 / 0.52);
+.closing-coda__title,
+.closing-coda__body {
+  font-family: var(--font-prose), Georgia, serif;
+  font-weight: 300;
+  letter-spacing: -0.02em;
+  color: #3f4a34;
 }
 
 .closing-coda__title {
-  margin-top: clamp(1.1rem, 2.4vh, 1.75rem);
-  font-size: clamp(1.85rem, 4.4vw, 3.15rem);
-  font-weight: 400;
-  line-height: 1.12;
-  letter-spacing: -0.03em;
+  font-size: clamp(1.35rem, 2.35vw, 1.85rem);
+  line-height: 1.4;
 }
 
 .closing-coda__body {
-  margin-top: clamp(1.15rem, 2.6vh, 1.85rem);
-  font-size: clamp(1.02rem, 1.8vw, 1.18rem);
-  line-height: 1.55;
-  color: rgb(245 247 251 / 0.82);
+  margin-top: 0.55rem;
+  font-size: clamp(1.35rem, 2.35vw, 1.85rem);
+  line-height: 1.4;
 }
 
-.closing-coda__break {
-  display: block;
-  margin-top: 0.55em;
+.closing-coda__word {
+  white-space: nowrap;
 }
 
 .closing-coda__actions {
@@ -2935,37 +2961,66 @@ body {
   flex-wrap: wrap;
   justify-content: center;
   gap: 0.85rem 1.75rem;
-  margin-top: clamp(2rem, 5vh, 3.25rem);
+  margin-top: 1.35rem;
 }
 
 .closing-coda__action {
   padding: 0;
   border: 0;
-  border-bottom: 1px solid rgb(245 247 251 / 0.42);
+  border-bottom: 1px solid rgb(63 74 52 / 0.4);
   background: transparent;
   font-size: 0.78rem;
   font-weight: 600;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: #f5f7fb;
+  color: #3f4a34;
   text-decoration: none;
   cursor: pointer;
 }
 
 .closing-coda__action:hover,
 .closing-coda__action:focus-visible {
-  border-bottom-color: #f5f7fb;
+  border-bottom-color: #3f4a34;
 }
 
 .closing-coda__action:focus-visible {
-  outline: 2px solid #f5f7fb;
+  outline: 2px solid #3f4a34;
   outline-offset: 4px;
 }
 
+.closing-coda__contact {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.28rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.closing-coda__contact-label {
+  color: rgb(63 74 52 / 0.62);
+}
+
+.closing-coda__contact a {
+  color: #3f4a34;
+  text-decoration: none;
+  border-bottom: 1px solid rgb(63 74 52 / 0.4);
+  letter-spacing: 0.04em;
+  text-transform: none;
+  font-weight: 500;
+}
+
+.closing-coda__contact a:hover,
+.closing-coda__contact a:focus-visible {
+  border-bottom-color: #3f4a34;
+}
+
 @media (max-width: 699px) {
-  .closing-coda__actions {
-    flex-direction: column;
-    align-items: center;
+  .closing-coda__layout {
+    grid-template-columns: 1fr;
+    justify-items: start;
   }
 }
 
@@ -8283,6 +8338,17 @@ body {
 
 .wordblue-archive--synesthetes {
   background: #7e8c54;
+}
+
+.wordblue-archive--synesthetes .wordblue-archive__sticky::before {
+  content: "";
+  position: absolute;
+  right: 0.7rem;
+  bottom: 0.7rem;
+  left: 0.7rem;
+  z-index: 8;
+  border-bottom: 1.5px solid rgb(255 248 231 / 0.78);
+  pointer-events: none;
 }
 
 .wordblue-archive__sources-below {

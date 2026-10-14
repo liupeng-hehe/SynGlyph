@@ -69,6 +69,18 @@ function shouldPauseSnap(): boolean {
   return isScrollGalleryActive() || isNowMineHolding();
 }
 
+/** Let the closing footer stay put once the last figure has scrolled past its end. */
+function isRestingPastLastGallery(section: HTMLElement): boolean {
+  const track = section.querySelector<HTMLElement>("[data-scroll-gallery-track]");
+  if (!track) return false;
+  const sections = document.querySelectorAll<HTMLElement>("[data-snap-section]");
+  if (sections[sections.length - 1] !== section) return false;
+
+  const rect = track.getBoundingClientRect();
+  const viewport = window.innerHeight;
+  return rect.top < viewport * 0.12 && rect.bottom < viewport * 0.98;
+}
+
 export function SmoothScrollProvider({ children }: Props) {
   const lenisRef = useRef<Lenis | null>(null);
   const snapLockRef = useRef(false);
@@ -123,6 +135,7 @@ export function SmoothScrollProvider({ children }: Props) {
 
       const target = pickDominantSnapSection();
       if (!target) return;
+      if (isRestingPastLastGallery(target)) return;
 
       const top = target.getBoundingClientRect().top;
       if (Math.abs(top) < 4) return;

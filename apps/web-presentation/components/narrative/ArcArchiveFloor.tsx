@@ -384,7 +384,7 @@ export function ArcArchiveFloor({
             </ol>
           </div>
 
-          <p className="wordblue-archive__hint m-0 font-body">{hint}</p>
+          {hint ? <p className="wordblue-archive__hint m-0 font-body">{hint}</p> : null}
         </div>
       </div>
     </section>
