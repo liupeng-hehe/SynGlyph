@@ -24,7 +24,7 @@ type BridgeProps = {
 const HOLD_STEPS = 2;
 const HOLD_STEP_MS = 800;
 const WASH_DURATION_MS = 1400;
-const COPY_SETTLE_MS = 1100;
+const COPY_SETTLE_MS = 700;
 
 const WASH = {
   "dark-to-light": {

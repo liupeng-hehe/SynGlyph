@@ -5,13 +5,13 @@ import { wordsForText } from "@/lib/paletteFieldV1";
 
 import { useSmoothScroll } from "./SmoothScrollProvider";
 
-/** Model hues, kept readable on the pale footer but with clearer chroma. */
+/** Model hues, stronger on the pale footer so each letter stays distinct. */
 function softenMineHex(hex: string): string {
   const lab = hexToLab(hex);
   const chroma = Math.hypot(lab.a, lab.b);
-  const cap = 52;
-  const scale = chroma > cap ? cap / chroma : 1;
-  const L = 38 + (lab.L / 100) * 18;
+  const cap = 78;
+  const scale = chroma > cap ? cap / chroma : chroma < 16 ? 1.45 : 1;
+  const L = 30 + (lab.L / 100) * 14;
   return labToHex(L, lab.a * scale, lab.b * scale);
 }
 
